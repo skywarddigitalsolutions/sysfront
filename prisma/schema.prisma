@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(CAJA)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders    Order[]
+}
+
+enum Role {
+  ADMIN
+  CAJA
+  COCINA
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  description String
+  date        DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  menuItems   MenuItem[]
+  orders      Order[]
+}
+
+model MenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  realPrice   Float
+  stock       Int
+  event       Event    @relation(fields: [eventId], references: [id])
+  eventId     String
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id                  String     @id @default(cuid())
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  status              OrderStatus
+  user                User       @relation(fields: [userId], references: [id])
+  userId              String
+  event               Event      @relation(fields: [eventId], references: [id])
+  eventId             String
+  customerIdentifier  String
+  items               OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  quantity   Int
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItemId String
+  order      Order    @relation(fields: [orderId], references: [id])
+  orderId    String
+}
+
+enum OrderStatus {
+  PENDIENTE
+  EN_PREPARACION
+  COMPLETADO
+}
