@@ -1,27 +1,17 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { fetchEvents, fetchEventStatistics } from "@/lib/api/api"
+import { fetchEvents, fetchEventStatistics } from "@/lib/api/events/api"
 import type { Event, EventStatistics } from "@/lib/types"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { useAuth } from "../../../components/AuthContext"
+import { useAuth } from "../../../Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts"
-import {
-  ArrowDownRight,
-  ArrowUpRight,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  TrendingUp,
-  AlertCircle,
-  RotateCcw,
-  ArrowDownLeftIcon,
-} from "lucide-react"
+import { ArrowDownRight, ArrowUpRight, DollarSign, Package, ShoppingCart, TrendingUp, AlertCircle, RotateCcw, ArrowDownLeftIcon } from "lucide-react"
 
-export default function Estadisticas() {
+export default function statistics() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -46,10 +36,10 @@ export default function Estadisticas() {
 
   const filteredAndSortedItems = statistics
     ? Object.entries(statistics.topSellingItems)
-        .filter(([name]) => name.toLowerCase().includes(filterSearch.toLowerCase()))
-        .map(([name, quantity]) => ({ name, quantity }))
-        .sort((a, b) => (sortBy === "quantity" ? b.quantity - a.quantity : a.name.localeCompare(b.name)))
-        .slice(0, 5)
+      .filter(([name]) => name.toLowerCase().includes(filterSearch.toLowerCase()))
+      .map(([name, quantity]) => ({ name, quantity }))
+      .sort((a, b) => (sortBy === "quantity" ? b.quantity - a.quantity : a.name.localeCompare(b.name)))
+      .slice(0, 5)
     : []
 
   const chartData = filteredAndSortedItems
@@ -62,9 +52,9 @@ export default function Estadisticas() {
 
   const stockAlerts = statistics
     ? [
-        { product: "Producto A", current: 5, minimum: 10 },
-        { product: "Producto B", current: 3, minimum: 8 },
-      ]
+      { product: "Producto A", current: 5, minimum: 10 },
+      { product: "Producto B", current: 3, minimum: 8 },
+    ]
     : []
 
   useEffect(() => {

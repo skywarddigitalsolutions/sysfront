@@ -8,12 +8,13 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { fetchEvents, fetchOrders } from "@/lib/api/api"
-import { useAuth } from "./AuthContext"
-import { OrderSheet } from "./caja/order-sheet"
+import { fetchEvents } from "@/lib/api/events/api"
+import { fetchOrders } from "@/lib/api/api"
+import { useAuth } from "../../Context/AuthContext"
+import { OrderSheet } from "../Cashier/OrdeSheet"
 import { Eye, Plus, Search, Filter } from "lucide-react"
-import { OrderDetailsModal } from "./caja/order-details"
-import { StatusPill } from "./status-pill"
+import { OrderDetailsModal } from "../Cashier/OrderDetails"
+import { StatusPill } from "../Status-pill"
 
 export default function CajaDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("")

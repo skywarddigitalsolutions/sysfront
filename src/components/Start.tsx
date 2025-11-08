@@ -1,105 +1,29 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { fetchEvents, fetchEventStatistics } from "@/lib/api/api"
+import { fetchEvents, fetchEventStatistics } from "@/lib/api/events/api"
 import type { Event, EventStatistics } from "@/lib/types"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
-import { useAuth } from "@/components/AuthContext"
+import { useAuth } from "@/Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  ArrowUpRight,
-  DollarSign,
-  Package,
-  TrendingUp,
-  ChefHat,
-  Receipt,
-  Calendar,
-  ArrowRight,
-  Clock,
-  TrendingDown,
-  Truck,
-  ShoppingBag,
-  BarChart3,
-  Home,
-} from "lucide-react"
+import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, Truck, ShoppingBag, BarChart3, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
-
-function CountdownTimer({ targetDate }: { targetDate: string | Date }) {
-  const [mounted, setMounted] = useState(false)
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const difference = +new Date(targetDate) - +new Date()
-      if (difference > 0) {
-        setTimeLeft({
-          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60),
-        })
-      }
-    }
-
-    calculateTimeLeft()
-    const timer = setInterval(calculateTimeLeft, 1000)
-    return () => clearInterval(timer)
-  }, [targetDate])
-
-  const timeUnits = [
-    { label: "Días", value: timeLeft.days, id: "countdown-days" },
-    { label: "Horas", value: timeLeft.hours, id: "countdown-hours" },
-    { label: "Minutos", value: timeLeft.minutes, id: "countdown-minutes" },
-    { label: "Segundos", value: timeLeft.seconds, id: "countdown-seconds" },
-  ]
-
-  if (!mounted) {
-    return (
-      <div className="flex gap-3 sm:gap-4">
-        {timeUnits.map((item) => (
-          <div key={item.id} className="flex flex-col items-center">
-            <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-3 sm:px-4 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
-              <span className="text-2xl sm:text-4xl font-bold text-white">00</span>
-            </div>
-            <span className="text-xs sm:text-sm text-white/80 mt-1 font-medium">{item.label}</span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex gap-3 sm:gap-4">
-      {timeUnits.map((item) => (
-        <div key={item.id} className="flex flex-col items-center">
-          <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-xl px-3 sm:px-4 py-2 sm:py-3 min-w-[60px] sm:min-w-[80px]">
-            <span className="text-2xl sm:text-4xl font-bold text-white">{String(item.value).padStart(2, "0")}</span>
-          </div>
-          <span className="text-xs sm:text-sm text-white/80 mt-1 font-medium">{item.label}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
+import { CountdownTimer } from "./CountDownTimer"
 
 const navigationItems = [
   { name: "Inicio", icon: Home, path: "/inicio" },
-  { name: "Estadísticas", icon: BarChart3, path: "/estadisticas" },
-  { name: "Caja", icon: Receipt, path: "/caja" },
-  { name: "Cocina", icon: ChefHat, path: "/cocina" },
+  { name: "Estadísticas", icon: BarChart3, path: "/statistics" },
+  { name: "Caja", icon: Receipt, path: "/cashier" },
+  { name: "Cocina", icon: ChefHat, path: "/kitchen" },
   { name: "Entrega", icon: Truck, path: "/entrega" },
   { name: "Ventas", icon: ShoppingBag, path: "/ventas" },
   { name: "Eventos", icon: Calendar, path: "/eventos" },
   { name: "Inventario", icon: Package, path: "/inventario" },
 ]
 
-export default function Inicio() {
+export default function Start() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
@@ -306,7 +230,7 @@ export default function Inicio() {
               </CardHeader>
               <CardContent>
                 <Button
-                  onClick={() => router.push("/estadisticas")}
+                  onClick={() => router.push("/statistics")}
                   className="w-full mt-2 bg-[#1E2C6D] hover:bg-[#1E2C6D]/80 text-white font-medium"
                 >
                   Estadísticas Completas
