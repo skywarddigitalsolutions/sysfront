@@ -31,15 +31,21 @@ export function AppSidebar() {
   const menuItems = [
     { icon: Home, label: 'Inicio', href: '/' },
     ...(user?.role === 'ADMIN' ? [
-      { icon: ClipboardList, label: 'Admin', href: '/admin' },
+      { icon: ClipboardList, label: 'Estadísticas', href: '/estadisticas' },
       { icon: ClipboardList, label: 'Caja', href: '/caja' },
       { icon: ClipboardList, label: 'Cocina', href: '/cocina' },
+      { icon: ClipboardList, label: 'Punto de Entrega', href: '/punto-de-entrega' },
+      { icon: ClipboardList, label: 'Ventas', href: '/ventas-evento' },
+      { icon: ClipboardList, label: 'Eventos', href: '/crear-evento' },
+      
     ] : []),
     ...(user?.role === 'CAJA' ? [
       { icon: ClipboardList, label: 'Caja', href: '/caja' },
     ] : []),
     ...(user?.role === 'COCINA' ? [
       { icon: ClipboardList, label: 'Cocina', href: '/cocina' },
+      { icon: ClipboardList, label: 'Punto de Entrega', href: '/punto-de-entrega' },
+
     ] : []),
   ]
 
