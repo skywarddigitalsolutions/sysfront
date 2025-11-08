@@ -1,4 +1,4 @@
-import { createUser, getUsers } from '@/data/users'
+import { createUser, getUsers } from '@/models/users'
 import { NextResponse } from 'next/server'
 
 export async function GET() {
