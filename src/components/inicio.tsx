@@ -217,28 +217,15 @@ export default function Inicio() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-white/60 text-xs mb-1">Ingresos</p>
-                    <p className="text-xl font-bold text-green-400">${statistics?.totalRevenue.toFixed(2) || "0.00"}</p>
+                    <p className="text-white/60 text-xs mb-1">Insumos Agregados</p>
+                    <p className="text-xl font-bold text-blue-100"> 45</p>
                   </div>
                   <div>
-                    <p className="text-white/60 text-xs mb-1">Ganancia</p>
-                    <p className={`text-xl font-bold ${profit >= 0 ? "text-green-400" : "text-green-100"}`}>
-                      ${Math.abs(profit).toFixed(2)}
+                    <p className="text-white/60 text-xs mb-1">Productos armados </p>
+                    <p className={`text-xl font-bold text-blue-100`}>
+                      20
                     </p>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
-                  {profit >= 0 ? (
-                    <TrendingUp className="h-4 w-4 text-green-400" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-red-400" />
-                  )}
-                  <span className="text-white/80 text-sm">ROI:</span>
-                  <span className={`font-bold text-sm ${profit >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    {profit >= 0 ? "+" : ""}
-                    {profitPercentage}%
-                  </span>
                 </div>
               </div>
             </div>

@@ -125,7 +125,7 @@ function OrderCard({
     switch (status) {
       case "pending":
         return {
-          bgColor: "bg-red-50 dark:bg-red-950/20",
+          bgColor: "bg-red-950/20",
           borderColor: "border-l-red-500",
           icon: Clock,
           actionLabel: "Iniciar",
@@ -134,7 +134,7 @@ function OrderCard({
         }
       case "in_progress":
         return {
-          bgColor: "bg-yellow-50 dark:bg-yellow-950/20",
+          bgColor: "bg-yellow-950/20",
           borderColor: "border-l-yellow-500",
           icon: ChefHat,
           actionLabel: "Completar",
@@ -143,7 +143,7 @@ function OrderCard({
         }
       case "completed":
         return {
-          bgColor: "bg-green-50 dark:bg-green-950/20",
+          bgColor: "bg-green-950/20",
           borderColor: "border-l-green-500",
           icon: CheckCircle2,
           actionLabel: null,
@@ -152,7 +152,7 @@ function OrderCard({
         }
       case "delivered":
         return {
-          bgColor: "bg-blue-50 dark:bg-blue-950/20",
+          bgColor: "bg-blue-950/20",
           borderColor: "border-l-blue-500",
           icon: Package,
           actionLabel: null,
@@ -259,7 +259,7 @@ export default function CocinaDashboard() {
   const outOfStockProducts = products?.filter((p) => p.stock === 0) || []
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black p-6">
+    <div className="min-h-screenbg-black p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -281,19 +281,19 @@ export default function CocinaDashboard() {
         </div>
 
         {(lowStockProducts.length > 0 || outOfStockProducts.length > 0) && (
-          <Card className="border-l-4 border-l-orange-500 bg-orange-50 dark:bg-orange-950/20">
+          <Card className="border-l-4 border-l-orange-500 bg-orange-950/20">
             <CardContent className="p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="font-semibold text-orange-900 dark:text-orange-400 mb-2">Alertas de Inventario</h3>
+                  <h3 className="font-semibold text-orange-400 mb-2">Alertas de Inventario</h3>
                   {outOfStockProducts.length > 0 && (
-                    <p className="text-sm text-orange-800 dark:text-orange-300 mb-1">
+                    <p className="text-sm text-orange-300 mb-1">
                       <span className="font-medium">Sin stock:</span> {outOfStockProducts.map((p) => p.name).join(", ")}
                     </p>
                   )}
                   {lowStockProducts.length > 0 && (
-                    <p className="text-sm text-orange-800 dark:text-orange-300">
+                    <p className="text-sm text-orange-300">
                       <span className="font-medium">Stock bajo:</span>{" "}
                       {lowStockProducts.map((p) => `${p.name} (${p.stock})`).join(", ")}
                     </p>
@@ -315,7 +315,7 @@ export default function CocinaDashboard() {
                   <p className="text-sm text-muted-foreground mb-1">No Preparados</p>
                   <p className="text-3xl font-bold text-red-600">{pendingOrders.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-red-100 dark:bg-red-950 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-red-950 flex items-center justify-center">
                   <Clock className="h-6 w-6 text-red-600" />
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function CocinaDashboard() {
                   <p className="text-sm text-muted-foreground mb-1">En Preparación</p>
                   <p className="text-3xl font-bold text-yellow-600">{inProgressOrders.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-950 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-yellow-950 flex items-center justify-center">
                   <ChefHat className="h-6 w-6 text-yellow-600" />
                 </div>
               </div>
@@ -343,7 +343,7 @@ export default function CocinaDashboard() {
                   <p className="text-sm text-muted-foreground mb-1">Listos</p>
                   <p className="text-3xl font-bold text-green-600">{completedOrders.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-950 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-green-950 flex items-center justify-center">
                   <CheckCircle2 className="h-6 w-6 text-green-600" />
                 </div>
               </div>
@@ -357,7 +357,7 @@ export default function CocinaDashboard() {
                   <p className="text-sm text-muted-foreground mb-1">Entregados</p>
                   <p className="text-3xl font-bold text-blue-600">{deliveredOrders.length}</p>
                 </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-950 flex items-center justify-center">
+                <div className="h-12 w-12 rounded-full bg-blue-950 flex items-center justify-center">
                   <Package className="h-6 w-6 text-blue-600" />
                 </div>
               </div>
