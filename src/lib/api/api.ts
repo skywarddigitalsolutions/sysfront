@@ -1,25 +1,4 @@
-import { Event, EventStatistics, MenuItem, Order, User } from '@/lib/types'
-
-// Funciones para eventos
-export async function fetchEvents(): Promise<Event[]> {
-  const response = await fetch('/api/events')
-  if (!response.ok) {
-    throw new Error('Error al obtener eventos')
-  }
-  return response.json()
-}
-
-export async function createEvent(data: { name: string; description: string; date: string }): Promise<Event> {
-  const response = await fetch('/api/events', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  })
-  if (!response.ok) {
-    throw new Error('Error al crear evento')
-  }
-  return response.json()
-}
+import { EventStatistics, MenuItem, Order, User } from '@/lib/types'
 
 // Funciones para menú items
 export async function fetchMenuItems(eventId: string): Promise<MenuItem[]> {
@@ -135,12 +114,4 @@ export async function deleteOrder(orderId: string): Promise<void> {
   if (!response.ok) {
     throw new Error('Error al eliminar orden')
   }
-}
-
-export async function fetchEventStatistics(eventId: string): Promise<EventStatistics> {
-  const response = await fetch(`/api/events?eventId=${eventId}&statistics=true`)
-  if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de órdenes')
-  }
-  return response.json()
 }

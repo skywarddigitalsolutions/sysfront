@@ -2,7 +2,7 @@
 
 import './globals.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { AuthProvider } from '@/components/AuthContext'
+import { AuthProvider } from '@/Context/AuthContext'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from 'next-themes'
 

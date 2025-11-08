@@ -1,7 +1,7 @@
 'use client'
 
 import { SidebarProvider } from '@/components/ui/sidebar'
-import { AppSidebar } from '@/components/sidebar'
+import { AppSidebar } from '@/components/Sidebar'
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

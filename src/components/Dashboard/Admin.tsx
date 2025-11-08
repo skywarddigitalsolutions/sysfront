@@ -1,11 +1,11 @@
 'use client'
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { EventList } from "./admin/event-list"
-import { CreateEvent } from "./admin/create-event"
-import { CreateMenuItem } from "./admin/create-menu-item"
-import { CreateUser } from "./admin/create-user"
-import { UsersList } from "./admin/users-list"
+import { EventList } from "../Admin/event-list"
+import { CreateEvent } from "../Admin/create-event"
+import { CreateMenuItem } from "../Admin/create-menu-item"
+import { CreateUser } from "../Admin/create-user"
+import { UsersList } from "../Admin/users-list"
 
 export default function AdminDashboard() {
   return (
