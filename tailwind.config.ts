@@ -61,6 +61,13 @@ export default {
   				ring: 'hsl(var(--sidebar-ring))'
   			}
   		},
+		 backgroundImage: {
+        // 👇 Aquí definimos correctamente el gradiente
+        "gradient-blue": "linear-gradient(135deg, #1E2C6D 0%, #2A3D8F 50%, #1E2C6D 100%)",
+		
+      },
+
+
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',

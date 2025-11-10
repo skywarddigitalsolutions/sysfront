@@ -13,20 +13,23 @@ export interface Product {
 
 export interface OrderItem {
   id: string
+  name: string
+  price: number
   quantity: number
-  menuItem: Product
+  customizations?: string[]
 }
 
 export interface Order {
   id: string
-  createdAt: Date
-  updatedAt: Date
-  status: 'PENDIENTE' | 'EN_PREPARACION' | 'COMPLETADO'
-  userId: string
-  eventId: string
+  orderNumber: string
   customerIdentifier: string
+  status: string
   items: OrderItem[]
+  total: number
+  createdAt: string
+  specialRequests?: string
 }
+
 
 export interface Event {
   id: string

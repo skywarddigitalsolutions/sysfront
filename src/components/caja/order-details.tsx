@@ -3,26 +3,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusPill } from "@/components/status-pill"
-import { Edit, Trash2 } from "lucide-react"
+import { Check, Edit, Trash2 } from "lucide-react"
+import {Order, OrderItem} from "@/lib/types"
 
-interface OrderItem {
-  id: string
-  name: string
-  price: number
-  quantity: number
-  customizations?: string[]
-}
-
-interface Order {
-  id: string
-  orderNumber: string
-  customerIdentifier: string
-  status: "PENDIENTE" | "EN_PREPARACION" | "COMPLETADO"
-  items: OrderItem[]
-  total: number
-  createdAt: string
-  specialRequests?: string
-}
 
 interface OrderDetailsModalProps {
   order: Order | null
@@ -44,30 +27,50 @@ export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDe
     onClose()
   }
 
+  const handleConfirm = () => {
+  console.log("Pedido confirmado:", order?.orderNumber)
+  onClose()
+}
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-black border border-white/20 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="border-b border-white/10 pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-2xl font-bold text-white">Detalles del Pedido</DialogTitle>
-              <p className="text-white/60 text-sm mt-1">Orden #{order.orderNumber}</p>
+      <DialogContent className="max-w-2xl bg-black border pt-82 border-white/20 max-h-[90vh] overflow-y-auto">
+      <DialogHeader className="pt-2 border-b border-white/10 pb-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <DialogTitle className="text-2xl font-bold text-white">
+              Detalles del Pedido
+            </DialogTitle>
+            <p className="text-white/60 text-sm mt-1">Orden #{order.orderNumber}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10 flex items-center gap-1"
+            >
+              <Edit className="h-4 w-4" />
+              <span className="text-sm font-medium">Modificar</span>
+            </Button>
+          </div>
+        </div>
+      </DialogHeader>
+
+      {/* Content */}
+      <div className="space-y-4">
+          {/* Cliente */}
+        <div className="flex items-center justify-between">
+          <div className="">
+            <div className="flex items-center py-2">
+              <span className="text-white font-semibold text-sm truncate text-right">
+                Nombre: {order.customerIdentifier}
+              </span>
             </div>
           </div>
-          <StatusPill status={order.status} />
-        </DialogHeader>
-
-        {/* Content */}
-        <div className="space-y-4">
-          {/* Cliente */}
-          <Card className="bg-white/5 border-white/20">
-            <CardContent className="pt-6">
-              <p className="text-white/80">
-                <span className="text-white/60 text-sm">Cliente:</span>{" "}
-                <span className="font-semibold text-white text-lg">{order.customerIdentifier}</span>
-              </p>
-            </CardContent>
-          </Card>
+          <div className="py-2 px-4">
+            <StatusPill status={order.status}/>
+          </div>
+        </div>
 
           {/* Items */}
           <Card className="bg-white/5 border-white/20">
@@ -95,17 +98,17 @@ export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDe
                   </div>
                   <div className="text-right ml-4">
                     <p className="text-white/80 text-sm">x{item.quantity}</p>
-                    <p className="text-[#D9251C] font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-white font-bold">${(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          <div className="bg-gradient-to-r from-[#1E2C6D]/20 to-[#D9251C]/20 border border-white/20 rounded-lg p-4">
+          <div className="bg-gradient-to-br from-black to-gray-700/50 border border-white/20 rounded-lg p-4">
             <div className="flex justify-between items-center">
               <span className="text-white/80 font-medium">Total:</span>
-              <span className="text-[#D9251C] font-bold text-2xl">${(order.total * 1.1).toFixed(2)}</span>
+              <span className="text-white font-bold text-2xl">${(order.total * 1.1).toFixed(2)}</span>
             </div>
           </div>
 
@@ -155,7 +158,7 @@ export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDe
                 size="sm"
                 className={
                   order.status === "COMPLETADO"
-                    ? "bg-green-600 hover:bg-green-600"
+                    ? "bg-green-500 hover:bg-green-200"
                     : "border-white/20 text-white/80 hover:bg-white/10"
                 }
               >
@@ -164,23 +167,22 @@ export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDe
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="border-t border-white/10 pt-4 space-y-2">
-            <Button className="w-full bg-gradient-to-r from-[#1E2C6D] to-[#2a3d8f] hover:from-[#1E2C6D] hover:to-[#1E2C6D] text-white font-bold">
-              <Edit className="mr-2 h-4 w-4" />
-              Modificar Pedido
-            </Button>
-
-            <Button
-              onClick={handleDelete}
-              variant="outline"
-              className="w-full border-[#D9251C] text-[#D9251C] hover:bg-[#D9251C]/10 bg-transparent"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Eliminar Pedido
+          
+        </div>
+        
+        <div className="flex justify-end gap-4 border-t border-white/10 mt-6 pt-6">
+          <div className="">
+            <Button onClick={handleDelete} variant="outline" className="w-full border-red-700 text-red-700 hover:bg-red-700 hover:text-white bg-transparent">
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
+          <div className=""> 
+            <Button onClick={handleConfirm} variant="outline" className="w-full border-green-400 text-green-400 hover:bg-green-400/10 bg-transparent" > 
+              <Check className="mr-2 h-4 w-4" /> Confirmar cambios
+            </Button> 
+          </div>
         </div>
+        
       </DialogContent>
     </Dialog>
   )

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import type { Order, Event, Product } from "@/lib/types"
+import type { Order, Event, Product, OrderItem } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -12,6 +12,7 @@ import { fetchEvents, fetchOrders, updateOrderStatus, fetchProducts } from "@/li
 import { Clock, ChefHat, CheckCircle2, AlertTriangle, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StatusPill } from "@/components/status-pill"
+
 
 function OrderDetailsModal({
   order,
@@ -163,7 +164,6 @@ function OrderCard({
   }
 
   const config = getStatusConfig(order.status)
-  const StatusIcon = config.icon
 
   return (
     <Card

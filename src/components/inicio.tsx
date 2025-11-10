@@ -248,7 +248,7 @@ export default function Inicio() {
               </div>
             )}
             <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-              <SelectTrigger className="w-full sm:w-[280px] h-11 bg-gradient-to-r from-[#1E2C6D] to-[#2a3d8f] text-white border-white/20 hover:border-white/40 font-medium backdrop-blur-sm">
+              <SelectTrigger className="w-full sm:w-[280px] h-11 bg-gradient-blue text-white border-white/20 hover:border-white/40 font-medium backdrop-blur-sm">
                 <SelectValue placeholder="Selecciona un evento" />
               </SelectTrigger>
               <SelectContent>
@@ -270,7 +270,7 @@ export default function Inicio() {
                 <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-[--color-brand-blue]">${statistics.totalInvestment.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-blue-500">${statistics.totalInvestment.toFixed(2)}</div>
                 <p className="text-xs text-white/60 mt-1">Capital invertido</p>
               </CardContent>
             </Card>
