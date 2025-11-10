@@ -1,4 +1,4 @@
-import { createEvent, getEvents, getEventStatistics } from '@/data/events'
+import { createEvent, getEvents, getEventStatistics } from '@/models/events'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {

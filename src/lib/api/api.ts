@@ -115,11 +115,3 @@ export async function deleteOrder(orderId: string): Promise<void> {
     throw new Error('Error al eliminar orden')
   }
 }
-
-export async function fetchEventStatistics(eventId: string): Promise<EventStatistics> {
-  const response = await fetch(`/api/events?eventId=${eventId}&statistics=true`)
-  if (!response.ok) {
-    throw new Error('Error al obtener estadísticas de órdenes')
-  }
-  return response.json()
-}

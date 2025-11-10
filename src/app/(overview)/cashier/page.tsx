@@ -1,4 +1,4 @@
-import CajaDashboard from '@/components/caja-dashboard'
+import CajaDashboard from '@/components/Dashboard/Cashier'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
