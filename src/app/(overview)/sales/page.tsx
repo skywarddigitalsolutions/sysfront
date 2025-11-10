@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { fetchEvents, fetchOrders, fetchEventStatistics } from "@/lib/api/api"
+import { fetchEvents, fetchEventStatistics } from "@/lib/api/events/api"
+import { fetchOrders } from "@/lib/api/api"
 import type { Order } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { StatusPill } from "@/components/status-pill"
+import { StatusPill } from "@/components/Status-pill"
 import {
   Search,
   Download,

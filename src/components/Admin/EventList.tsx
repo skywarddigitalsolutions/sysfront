@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Event, MenuItem } from '@/lib/types'
-import { fetchEvents, fetchMenuItems, deleteMenuItem, updateMenuItemInfo } from '@/lib/api/api'
+import { fetchEvents } from '@/lib/api/events/api'
+import { fetchMenuItems, deleteMenuItem, updateMenuItemInfo } from '@/lib/api/api'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"

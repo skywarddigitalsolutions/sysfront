@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createMenuItem, deleteMenuItem, getMenuItems, updateMenuItem } from '../../../data/menu-items'
+import { createMenuItem, deleteMenuItem, getMenuItems, updateMenuItem } from '../../../models/menu-items'
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)

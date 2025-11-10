@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusPill } from "@/components/status-pill"
 import { Check, Edit, Trash2 } from "lucide-react"
-import {Order, OrderItem} from "@/lib/types"
+import {Order} from "@/lib/types"
 
 
 interface OrderDetailsModalProps {

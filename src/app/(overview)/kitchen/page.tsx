@@ -1,4 +1,4 @@
-import CocinaDashboard from '@/components/cocina-dashboard'
+import CocinaDashboard from '@/components/Dashboard/Kitchen'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {

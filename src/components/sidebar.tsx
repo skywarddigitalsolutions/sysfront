@@ -16,8 +16,7 @@ import {
   SidebarGroupLabel,
   SidebarGroupContent,
 } from '@/components/ui/sidebar'
-import { useAuth } from './AuthContext'
-import { ThemeChanger } from './theme-changer'
+import { useAuth } from '../Context/AuthContext'
 
 export function AppSidebar() {
   const { user, logout } = useAuth()
@@ -31,20 +30,20 @@ export function AppSidebar() {
   const menuItems = [
     { icon: Home, label: 'Inicio', href: '/' },
     ...(user?.role === 'ADMIN' ? [
-      { icon: ClipboardList, label: 'Estadísticas', href: '/estadisticas' },
-      { icon: ClipboardList, label: 'Caja', href: '/caja' },
-      { icon: ClipboardList, label: 'Cocina', href: '/cocina' },
-      { icon: ClipboardList, label: 'Punto de Entrega', href: '/punto-de-entrega' },
-      { icon: ClipboardList, label: 'Ventas', href: '/ventas-evento' },
-      { icon: ClipboardList, label: 'Eventos', href: '/crear-evento' },
-      
+      { icon: ClipboardList, label: 'Estadísticas', href: '/statistics' },
+      { icon: ClipboardList, label: 'Caja', href: '/cashier' },
+      { icon: ClipboardList, label: 'Cocina', href: '/kitchen' },
+      { icon: ClipboardList, label: 'Punto de Entrega', href: '/delivery-point' },
+      { icon: ClipboardList, label: 'Ventas', href: '/sales' },
+      { icon: ClipboardList, label: 'Eventos', href: '/create-event' },
+
     ] : []),
     ...(user?.role === 'CAJA' ? [
-      { icon: ClipboardList, label: 'Caja', href: '/caja' },
+      { icon: ClipboardList, label: 'Caja', href: '/cashier' },
     ] : []),
     ...(user?.role === 'COCINA' ? [
-      { icon: ClipboardList, label: 'Cocina', href: '/cocina' },
-      { icon: ClipboardList, label: 'Punto de Entrega', href: '/punto-de-entrega' },
+      { icon: ClipboardList, label: 'Cocina', href: '/kitchen' },
+      { icon: ClipboardList, label: 'Punto de Entrega', href: '/delivery-point' },
 
     ] : []),
   ]
@@ -55,7 +54,7 @@ export function AppSidebar() {
         <img src="/logo.png" alt="Logo" className="w-12 h-12" />
         <h2 className="text-xl font-bold">Batallón 1</h2>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>General</SidebarGroupLabel>
@@ -77,7 +76,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-        <ThemeChanger />
         <Button onClick={handleLogout} variant="ghost" className="w-full justify-start">
           <LogOut className="mr-2 h-4 w-4" />
           Cerrar Sesión

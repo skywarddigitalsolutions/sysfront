@@ -1,5 +1,5 @@
-import { getMenuItem, updateMenuItem } from '@/data/menu-items'
-import { createOrder, deleteOrder, getOrders, updateOrderStatus } from '@/data/orders'
+import { getMenuItem, updateMenuItem } from '@/models/menu-items'
+import { createOrder, deleteOrder, getOrders, updateOrderStatus } from '@/models/orders'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -20,12 +20,12 @@ export async function POST(request: Request) {
   try {
     const res = await request.json()
     const { userId, eventId, items, customerIdentifier } = res
- 
+
     for (const item of items) {
       const idItem = await getMenuItem(item.menuItemId);
       updateMenuItem(idItem[0].id, { stock: idItem[0].stock - item.quantity });
     }
-    
+
     if (!userId || typeof userId !== 'string') {
       return NextResponse.json({ message: 'userId inválido o faltante' }, { status: 400 })
     }
