@@ -12,7 +12,7 @@ import { fetchEvents } from "@/lib/api/events/api"
 import { fetchOrders, updateOrderStatus, fetchProducts } from "@/lib/api/api"
 import { Clock, ChefHat, CheckCircle2, AlertTriangle, Package } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { StatusPill } from "@/components/Status-pill"
+import { StatusPill } from "@/components/status-pill"
 
 
 function OrderDetailsModal({
@@ -264,7 +264,7 @@ export default function CocinaDashboard() {
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-[#1E2C6D] mb-2">Panel de Cocina</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Panel de Cocina</h1>
             <p className="text-muted-foreground">Gestiona los pedidos en tiempo real</p>
           </div>
           <Select value={selectedEventId} onValueChange={setSelectedEventId}>

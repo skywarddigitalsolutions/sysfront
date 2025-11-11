@@ -520,7 +520,7 @@ export default function EventosDashboard() {
                 <Button
                   onClick={handleSubmit}
                   disabled={!formData.name || !formData.date}
-                  className="bg-[#1E2C6D] hover:bg-[#1E2C6D]/90 text-white"
+                  className="bg-gradient-blue text-white"
                 >
                   <Check className="h-4 w-4" />
                   {editingEvent ? "Guardar Cambios" : "Crear Evento"}

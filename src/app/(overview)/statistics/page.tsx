@@ -96,7 +96,7 @@ const [sortBy, setSortBy] = useState<
   return (
     <main className="flex-1 p-6 space-y-8 bg-background min-h-screen">
       <div className="space-y-2">
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent text-transparent bg-clip-text">
+        <h1 className="text-4xl font-bold">
           Estadísticas del Evento
         </h1>
       </div>
