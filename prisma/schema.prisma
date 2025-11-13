@@ -8,68 +8,180 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  username  String   @unique
-  password  String
-  role      Role     @default(CAJA)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  orders    Order[]
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  orders    Order[]    // users ||--o{ orders : crea
+  userRoles UserRole[] // users ||--o{ user_roles : tiene
+
+  @@map("users")
 }
 
-enum Role {
-  ADMIN
-  CAJA
-  COCINA
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relaciones
+  userRoles UserRole[] // roles ||--o{ user_roles : asigna
+
+  @@map("roles")
+}
+
+model UserRole {
+  userId     String   @map("user_id")
+  roleId     String   @map("role_id")
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  // Relaciones
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+  @@map("user_roles")
 }
 
 model Event {
-  id          String    @id @default(cuid())
+  id          String           @id @default(uuid()) @db.Uuid
   name        String
-  description String
-  date        DateTime
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  menuItems   MenuItem[]
-  orders      Order[]
+  description String?
+  startDate   DateTime         @map("start_date")
+  endDate     DateTime?        @map("end_date")
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  // Relaciones
+  orders      Order[]          // events ||--o{ orders : tiene
+  inventories EventInventory[] // events ||--o{ event_inventories : define
+  orderItems  OrderItem[]      // events ||--o{ order_items (por FK event_id)
+
+  @@map("events")
 }
 
-model MenuItem {
-  id          String   @id @default(cuid())
+model Product {
+  id          String           @id @default(uuid()) @db.Uuid
   name        String
-  description String
-  price       Float
-  realPrice   Float
-  stock       Int
-  event       Event    @relation(fields: [eventId], references: [id])
-  eventId     String
-  orderItems  OrderItem[]
+  description String?
+  cost        Decimal          @db.Decimal(10, 2)
+  isActive    Boolean          @default(true) @map("is_active")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  // Relaciones
+  inventories EventInventory[] // products ||--o{ event_inventories : participa
+  orderItems  OrderItem[]      // products ||--o{ order_items
+
+  @@map("products")
+}
+
+model EventInventory {
+  eventId    String   @map("event_id")
+  productId  String   @map("product_id")
+  initialQty Decimal  @map("initial_qty") @db.Decimal(10, 2)
+  minQty     Decimal  @map("min_qty") @db.Decimal(10, 2)
+  price      Decimal  @db.Decimal(10, 2)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  event   Event   @relation(fields: [eventId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  // Ojo: la relación con OrderItem la reflejamos a través de eventId + productId
+
+  @@id([eventId, productId])
+  @@map("event_inventories")
 }
 
 model Order {
-  id                  String     @id @default(cuid())
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
-  status              OrderStatus
-  user                User       @relation(fields: [userId], references: [id])
-  userId              String
-  event               Event      @relation(fields: [eventId], references: [id])
-  eventId             String
-  customerIdentifier  String
-  items               OrderItem[]
+  id          String    @id @default(uuid()) @db.Uuid
+  eventId     String    @map("event_id")
+  createdById String    @map("created_by")
+  orderNumber Int       @map("order_number")
+  status      String
+  totalAmount Decimal   @map("total_amount") @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relaciones
+  event   Event   @relation(fields: [eventId], references: [id])   // events ||--o{ orders
+  creator User    @relation(fields: [createdById], references: [id])
+  items   OrderItem[]
+  sales   Sale[]
+
+  @@map("orders")
 }
 
 model OrderItem {
-  id         String   @id @default(cuid())
-  quantity   Int
-  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
-  menuItemId String
-  order      Order    @relation(fields: [orderId], references: [id])
-  orderId    String
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id")
+  eventId   String   @map("event_id")
+  productId String   @map("product_id")
+  qty       Decimal  @db.Decimal(10, 2)
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  status    String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  order   Order   @relation(fields: [orderId], references: [id]) // orders ||--o{ order_items : contiene
+  event   Event   @relation(fields: [eventId], references: [id]) // events ||--o{ order_items
+  product Product @relation(fields: [productId], references: [id]) // products ||--o{ order_items
+
+  // Nota: Conceptualmente también se relaciona con EventInventory
+  // mediante (eventId, productId). Si quisieras modelar esa relación
+  // explícita, se puede agregar más adelante con un relation name.
+
+  @@map("order_items")
 }
 
-enum OrderStatus {
-  PENDIENTE
-  EN_PREPARACION
-  COMPLETADO
+model Sale {
+  id        String   @id @default(uuid()) @db.Uuid
+  orderId   String   @map("order_id")
+  method    String
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relaciones
+  order Order @relation(fields: [orderId], references: [id]) // orders ||--o{ sales : cobra
+
+  @@map("sales")
+}
+
+model OrderStatus {
+  id    String  @id @default(uuid()) @db.Uuid
+  name  String  @unique
+  orders Order[]
+
+  @@map("order_status")
+}
+
+model Order {
+  id          String    @id @default(uuid()) @db.Uuid
+  eventId     String    @map("event_id")
+  createdById String    @map("created_by")
+  orderNumber Int       @map("order_number")
+  totalAmount Decimal   @map("total_amount") @db.Decimal(10, 2)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Nueva FK a order_status
+  statusId String       @map("status_id")
+  status   OrderStatus  @relation(fields: [statusId], references: [id])
+
+  // Relaciones existentes
+  event   Event   @relation(fields: [eventId], references: [id])
+  creator User    @relation(fields: [createdById], references: [id])
+  items   OrderItem[]
+  sales   Sale[]
+
+  @@map("orders")
 }
