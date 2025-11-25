@@ -27,8 +27,17 @@ import {
   ArrowDownRight,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function VentasDashboard() {
+  return (
+    <ProtectedRoute requiredRoles={['ADMIN']}>
+      <VentasContent />
+    </ProtectedRoute>
+  )
+}
+
+function VentasContent() {
   const [selectedEventId, setSelectedEventId] = useState<string>("")
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
@@ -211,7 +220,7 @@ export default function VentasDashboard() {
             </CardContent>
           </Card>
 
-            <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes</CardTitle>
               <ShoppingCart className="h-4 w-4 text-primary" />
@@ -222,7 +231,7 @@ export default function VentasDashboard() {
             </CardContent>
           </Card>
 
-            <Card className="backdrop-blur-xl bg-gradient-to-br from-sky-500/20 to-sky-500/5 border border-sky-500/30 hover:border-sky-500/5 transition-all shadow-xl">
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-sky-500/20 to-sky-500/5 border border-sky-500/30 hover:border-sky-500/5 transition-all shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Ticket Promedio</CardTitle>
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -233,9 +242,9 @@ export default function VentasDashboard() {
             </CardContent>
           </Card>
           <Card className={`backdrop-blur-xl bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-500/50 transition-all shadow-xl`}>            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Clientes</CardTitle>
-              <Users className="h-4 w-4 text-emerald-500" />
-            </CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Clientes</CardTitle>
+            <Users className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
               <p className="text-xs text-muted-foreground">Únicos atendidos</p>
@@ -289,7 +298,7 @@ export default function VentasDashboard() {
           </CardContent>
         </Card>
 
-                
+
 
         {/* Tabla de ventas */}
         <Card className="border-white/20 bg-white/5 backdrop-blur-md">
@@ -350,7 +359,7 @@ export default function VentasDashboard() {
                                           {selectedOrder.customerIdentifier || selectedOrder.customerName}
                                         </p>
                                       </div>
-                                    
+
                                       <div>
                                         <p className="text-sm text-white/60">Método de Pago</p>
                                         <p className="font-semibold text-white">

@@ -43,23 +43,22 @@ export function AppSidebar() {
   }
 
   const menuItems = [
-    { icon: Home, label: "Inicio", href: "/" },
     ...(user?.role === "ADMIN"
       ? [
-          { icon: BarChart3, label: "Estadísticas", href: "/statistics" },
-          { icon: CreditCard, label: "Caja", href: "/cashier" },
-          { icon: ChefHat, label: "Cocina", href: "/kitchen" },
-          { icon: Package, label: "Inventario", href: "/inventory" },
-          { icon: TrendingUp, label: "Ventas", href: "/sales" },
-          { icon: Calendar, label: "Eventos", href: "/create-event" },
-        ]
+        { icon: Home, label: "Inicio", href: "/" },
+        { icon: BarChart3, label: "Estadísticas", href: "/statistics" },
+        { icon: CreditCard, label: "Caja", href: "/cashier" },
+        { icon: ChefHat, label: "Cocina", href: "/kitchen" },
+        { icon: Package, label: "Inventario", href: "/inventory" },
+        { icon: TrendingUp, label: "Ventas", href: "/sales" },
+        { icon: Calendar, label: "Eventos", href: "/create-event" },
+      ]
       : []),
     ...(user?.role === "CAJA" ? [{ icon: CreditCard, label: "Caja", href: "/cashier" }] : []),
     ...(user?.role === "COCINA"
       ? [
-          { icon: ChefHat, label: "Cocina", href: "/kitchen" },
-          { icon: Package, label: "Inventario", href: "/inventory" },
-        ]
+        { icon: ChefHat, label: "Cocina", href: "/kitchen" },
+      ]
       : []),
   ]
 

@@ -33,8 +33,17 @@ import {
   deleteProduct,
 } from "@/lib/api/api"
 import type { Insumo, Product, InsumoIngredient } from "@/lib/types"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function InventarioDashboard() {
+  return (
+    <ProtectedRoute requiredRoles={['ADMIN', 'CAJA', 'COCINA']}>
+      <InventarioContent />
+    </ProtectedRoute>
+  )
+}
+
+function InventarioContent() {
   const [insumos, setInsumos] = useState<Insumo[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [searchInsumos, setSearchInsumos] = useState("")

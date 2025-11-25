@@ -1,14 +1,12 @@
-import CocinaDashboard from '@/components/Dashboard/Kitchen'
-import { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Panel de Cocina',
-  description: 'Gestión de pedidos en cocina',
-}
+import ProtectedRoute from '@/components/ProtectedRoute'
+import CocinaDashboard from '@/components/Dashboard/Kitchen'
 
 export default function CocinaPage() {
   return (
-    <CocinaDashboard />
+    <ProtectedRoute requiredRoles={['ADMIN', 'COCINA']}>
+      <CocinaDashboard />
+    </ProtectedRoute>
   )
 }
-

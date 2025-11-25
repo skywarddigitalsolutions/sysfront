@@ -1,14 +1,12 @@
-import Start from '@/components/Start'
-import { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Sysventos',
-  description: 'Gestion y control de eventos',
-}
+import Start from '@/components/Start'
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function Home() {
   return (
-    <Start />
+    <ProtectedRoute requiredRoles={['ADMIN']}>
+      <Start />
+    </ProtectedRoute>
   )
 }
-

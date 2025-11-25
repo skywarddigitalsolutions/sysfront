@@ -6,13 +6,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
 import { useAuth } from '../Context/AuthContext'
+import { getDefaultRouteForRole } from '@/lib/route-protection'
 
 export default function LoginForm() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const router = useRouter()
-  const { login } = useAuth()
+  const { login, user } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,7 +21,15 @@ export default function LoginForm() {
     try {
       const success = await login(username, password)
       if (success) {
-        router.push('/')
+        // Get user from sessionStorage since context might not be updated yet
+        const userData = sessionStorage.getItem('user')
+        if (userData) {
+          const parsedUser = JSON.parse(userData)
+          const defaultRoute = getDefaultRouteForRole(parsedUser.role)
+          router.push(defaultRoute)
+        } else {
+          router.push('/')
+        }
       } else {
         setError('Credenciales inválidas')
       }

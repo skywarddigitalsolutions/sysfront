@@ -1,14 +1,12 @@
-import CajaDashboard from '@/components/Dashboard/Cashier'
-import { Metadata } from 'next'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Panel de Caja',
-  description: 'Gestión de pedidos y ventas',
-}
+import ProtectedRoute from '@/components/ProtectedRoute'
+import CajaDashboard from '@/components/Dashboard/Cashier'
 
 export default function CajaPage() {
   return (
-    <CajaDashboard />
+    <ProtectedRoute requiredRoles={['ADMIN', 'CAJA']}>
+      <CajaDashboard />
+    </ProtectedRoute>
   )
 }
-

@@ -21,8 +21,17 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchEvents, fetchAllProducts, createEvent, updateEvent, duplicateEvent } from "@/lib/api/api"
 import type { Event, EventFormData, EventUser, EventPromotion } from "@/lib/types"
+import ProtectedRoute from "@/components/ProtectedRoute"
 
 export default function EventosDashboard() {
+  return (
+    <ProtectedRoute requiredRoles={['ADMIN']}>
+      <EventosContent />
+    </ProtectedRoute>
+  )
+}
+
+function EventosContent() {
   const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "upcoming" | "completed">("all")
@@ -332,7 +341,7 @@ export default function EventosDashboard() {
                         key={`product-select-${product.id}`}
                         className="flex items-center space-x-2 p-2 rounded-md hover:bg-white/5"
                       >
-                        
+
                         <Checkbox
                           id={`product-${product.id}`}
                           checked={formData.availableProducts?.includes(product.id)}
