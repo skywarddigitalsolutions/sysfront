@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { StatusPill } from "@/components/Status-pill"
+import { StatusPill } from "@/components/status-pill"
 import {
   Search,
   Download,
@@ -200,47 +200,45 @@ export default function VentasDashboard() {
 
         {/* Métricas principales */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+          <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-gray-500/30 hover:border-gray-500/50 transition-all shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-white/70">Ventas Totales</CardTitle>
-              <DollarSign className="h-4 w-4 text-[#1E2C6D]" />
+              <DollarSign className="h-4 w-4 text-gray-700" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#1E2C6D]">{formatCurrency(metrics.totalSales)}</div>
+              <div className="text-2xl font-bold text-foreground">{formatCurrency(metrics.totalSales)}</div>
               <p className="text-xs text-white/60">+12.5% vs. evento anterior</p>
             </CardContent>
           </Card>
 
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+            <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Órdenes</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-[#1E2C6D]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#1E2C6D]">{metrics.totalOrders}</div>
-              <p className="text-xs text-white/60">{filteredOrders.length} filtradas</p>
+              <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">{filteredOrders.length} filtradas</p>
             </CardContent>
           </Card>
 
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+            <Card className="backdrop-blur-xl bg-gradient-to-br from-sky-500/20 to-sky-500/5 border border-sky-500/30 hover:border-sky-500/5 transition-all shadow-xl">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Ticket Promedio</CardTitle>
-              <TrendingUp className="h-4 w-4 text-[#1E2C6D]" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Ticket Promedio</CardTitle>
+              <TrendingUp className="h-4 w-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#1E2C6D]">{formatCurrency(metrics.averageTicket)}</div>
-              <p className="text-xs text-white/60">Por orden</p>
+              <div className="text-2xl font-bold text-foreground">{formatCurrency(metrics.averageTicket)}</div>
+              <p className="text-xs text-muted-foreground">Por orden</p>
             </CardContent>
           </Card>
-
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-white/70">Clientes</CardTitle>
-              <Users className="h-4 w-4 text-[#1E2C6D]" />
+          <Card className={`backdrop-blur-xl bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-500/50 transition-all shadow-xl`}>            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Clientes</CardTitle>
+              <Users className="h-4 w-4 text-emerald-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-[#1E2C6D]">{metrics.totalOrders}</div>
-              <p className="text-xs text-white/60">Únicos atendidos</p>
+              <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
+              <p className="text-xs text-muted-foreground">Únicos atendidos</p>
             </CardContent>
           </Card>
         </div>
@@ -291,109 +289,7 @@ export default function VentasDashboard() {
           </CardContent>
         </Card>
 
-        {/* Breakdown por método de pago y caja */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-white">Ventas por Método de Pago</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(metrics.paymentMethodBreakdown).map(([method, amount]) => (
-                  <div
-                    key={`payment-${method}`}
-                    className="flex items-center justify-between rounded-lg bg-white/5 p-3 border border-white/10"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CreditCard className="h-4 w-4 text-[#1E2C6D]" />
-                      <span className="font-medium text-white">{getPaymentMethodLabel(method)}</span>
-                    </div>
-                    <span className="font-bold text-[#1E2C6D]">{formatCurrency(amount)}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
-            <CardHeader>
-              <CardTitle className="text-white">Ventas por Caja</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {Object.entries(metrics.cashierBreakdown)
-                  .sort(([, a], [, b]) => b - a)
-                  .map(([cashier, amount]) => (
-                    <div
-                      key={`cashier-${cashier}`}
-                      className="flex items-center justify-between rounded-lg bg-white/5 p-3 border border-white/10"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-[#1E2C6D]" />
-                        <span className="font-medium text-white">{cashier}</span>
-                      </div>
-                      <span className="font-bold text-[#1E2C6D]">{formatCurrency(amount)}</span>
-                    </div>
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Comparación entre eventos */}
-        <Card className="border-white/20 bg-white/5 backdrop-blur-md">
-          <CardHeader>
-            <CardTitle className="text-white">Comparación entre Eventos</CardTitle>
-            <CardDescription className="text-white/60">Análisis de rendimiento por evento</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-white/20 hover:bg-transparent">
-                    <TableHead className="text-white/70">Evento</TableHead>
-                    <TableHead className="text-white/70">Ventas Totales</TableHead>
-                    <TableHead className="text-white/70">Órdenes</TableHead>
-                    <TableHead className="text-white/70">Ticket Promedio</TableHead>
-                    <TableHead className="text-white/70">Producto Top</TableHead>
-                    <TableHead className="text-white/70">Tendencia</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {eventComparison.map((event, index) => {
-                    const avgTicket = event.totalSales / event.totalOrders
-                    const trend = index % 2 === 0
-                    return (
-                      <TableRow
-                        key={`comparison-${event.eventId}`}
-                        className="border-b border-white/5 hover:bg-white/5"
-                      >
-                        <TableCell className="font-medium text-white">{event.eventName}</TableCell>
-                        <TableCell className="font-bold text-[#1E2C6D]">{formatCurrency(event.totalSales)}</TableCell>
-                        <TableCell className="text-white">{event.totalOrders}</TableCell>
-                        <TableCell className="text-white">{formatCurrency(avgTicket)}</TableCell>
-                        <TableCell className="text-white/70">{event.topProduct}</TableCell>
-                        <TableCell>
-                          {trend ? (
-                            <div className="flex items-center gap-1 text-green-400">
-                              <ArrowUpRight className="h-4 w-4" />
-                              <span className="text-sm font-medium">+8.3%</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-1 text-[#D9251C]">
-                              <ArrowDownRight className="h-4 w-4" />
-                              <span className="text-sm font-medium">-3.2%</span>
-                            </div>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                
 
         {/* Tabla de ventas */}
         <Card className="border-white/20 bg-white/5 backdrop-blur-md">
@@ -408,7 +304,6 @@ export default function VentasDashboard() {
                   <TableRow className="border-b border-white/20 hover:bg-transparent">
                     <TableHead className="text-white/70">N° Orden</TableHead>
                     <TableHead className="text-white/70">Cliente</TableHead>
-                    <TableHead className="text-white/70">Teléfono</TableHead>
                     <TableHead className="text-white/70">Productos</TableHead>
                     <TableHead className="text-white/70">Total</TableHead>
                     <TableHead className="text-white/70">Método Pago</TableHead>
@@ -434,7 +329,7 @@ export default function VentasDashboard() {
                               <DialogTrigger asChild>
                                 <Button
                                   variant="link"
-                                  className="p-0 font-mono text-[#1E2C6D] hover:text-[#1E2C6D]/80"
+                                  className="p-0 font-mono text-blue-950 hover:text-blue-100"
                                   onClick={() => setSelectedOrder(order)}
                                 >
                                   {order.id.slice(0, 8)}
@@ -455,12 +350,7 @@ export default function VentasDashboard() {
                                           {selectedOrder.customerIdentifier || selectedOrder.customerName}
                                         </p>
                                       </div>
-                                      <div>
-                                        <p className="text-sm text-white/60">Teléfono</p>
-                                        <p className="font-semibold text-white">
-                                          {selectedOrder.customerPhone || "N/A"}
-                                        </p>
-                                      </div>
+                                    
                                       <div>
                                         <p className="text-sm text-white/60">Método de Pago</p>
                                         <p className="font-semibold text-white">
@@ -500,7 +390,7 @@ export default function VentasDashboard() {
                                           return (
                                             <div
                                               key={`order-detail-item-${item.id || item.productId}-${idx}`}
-                                              className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3"
+                                              className="flex items-center justify-between rounded-lg border border-white/10 bg-gradient-blue p-3"
                                             >
                                               <div>
                                                 <p className="font-medium text-white">{itemName}</p>
@@ -511,7 +401,7 @@ export default function VentasDashboard() {
                                                   </p>
                                                 )}
                                               </div>
-                                              <p className="font-bold text-[#1E2C6D]">
+                                              <p className="font-bold text-white">
                                                 {formatCurrency(itemPrice * item.quantity)}
                                               </p>
                                             </div>
@@ -521,7 +411,7 @@ export default function VentasDashboard() {
                                     </div>
                                     <div className="flex items-center justify-between border-t border-white/20 pt-4">
                                       <p className="text-lg font-semibold text-white">Total</p>
-                                      <p className="text-2xl font-bold text-[#1E2C6D]">
+                                      <p className="text-2xl font-bold text-white">
                                         {formatCurrency(selectedOrder.total)}
                                       </p>
                                     </div>
@@ -532,19 +422,13 @@ export default function VentasDashboard() {
                           </TableCell>
                           <TableCell className="font-medium text-white">{customerDisplay}</TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-1 text-sm text-white/60">
-                              <Phone className="h-3 w-3" />
-                              {order.customerPhone || "N/A"}
-                            </div>
-                          </TableCell>
-                          <TableCell>
                             <span className="text-sm text-white/60">
                               {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
                             </span>
                           </TableCell>
-                          <TableCell className="font-bold text-[#D9251C]">{formatCurrency(order.total)}</TableCell>
+                          <TableCell className="font-bold text-blue-200">{formatCurrency(order.total)}</TableCell>
                           <TableCell>
-                            <Badge variant="outline" className="border-[#1E2C6D]/30 bg-[#1E2C6D]/10 text-[#1E2C6D]">
+                            <Badge variant="outline" className="border-[#1E2C6D]/30 bg-gradient-blue text-white">
                               {getPaymentMethodLabel(order.paymentMethod)}
                             </Badge>
                           </TableCell>
@@ -562,6 +446,110 @@ export default function VentasDashboard() {
                       )
                     })
                   )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Breakdown por método de pago y caja */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-white">Ventas por Método de Pago</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(metrics.paymentMethodBreakdown).map(([method, amount]) => (
+                  <div
+                    key={`payment-${method}`}
+                    className="flex items-center justify-between rounded-lg bg-white/5 p-3 border border-white/10"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4 text-[#1E2C6D]" />
+                      <span className="font-medium text-white">{getPaymentMethodLabel(method)}</span>
+                    </div>
+                    <span className="font-bold text-white">{formatCurrency(amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+            <CardHeader>
+              <CardTitle className="text-white">Ventas por Caja</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Object.entries(metrics.cashierBreakdown)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([cashier, amount]) => (
+                    <div
+                      key={`cashier-${cashier}`}
+                      className="flex items-center justify-between rounded-lg bg-white/5 p-3 border border-white/10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-[#1E2C6D]" />
+                        <span className="font-medium text-white">{cashier}</span>
+                      </div>
+                      <span className="font-bold text-white">{formatCurrency(amount)}</span>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Comparación entre eventos */}
+        <Card className="border-white/20 bg-white/5 backdrop-blur-md">
+          <CardHeader>
+            <CardTitle className="text-white">Comparación entre Eventos</CardTitle>
+            <CardDescription className="text-white/60">Análisis de rendimiento por evento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-white/20 hover:bg-transparent">
+                    <TableHead className="text-white/70">Evento</TableHead>
+                    <TableHead className="text-white/70">Ventas Totales</TableHead>
+                    <TableHead className="text-white/70">Órdenes</TableHead>
+                    <TableHead className="text-white/70">Ticket Promedio</TableHead>
+                    <TableHead className="text-white/70">Producto Top</TableHead>
+                    <TableHead className="text-white/70">Tendencia</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {eventComparison.map((event, index) => {
+                    const avgTicket = event.totalSales / event.totalOrders
+                    const trend = index % 2 === 0
+                    return (
+                      <TableRow
+                        key={`comparison-${event.eventId}`}
+                        className="border-b border-white/5 hover:bg-white/5"
+                      >
+                        <TableCell className="font-medium text-white">{event.eventName}</TableCell>
+                        <TableCell className="font-bold text-white">{formatCurrency(event.totalSales)}</TableCell>
+                        <TableCell className="text-white">{event.totalOrders}</TableCell>
+                        <TableCell className="text-white">{formatCurrency(avgTicket)}</TableCell>
+                        <TableCell className="text-white/70">{event.topProduct}</TableCell>
+                        <TableCell>
+                          {trend ? (
+                            <div className="flex items-center gap-1 text-green-400">
+                              <ArrowUpRight className="h-4 w-4" />
+                              <span className="text-sm font-medium">+8.3%</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-[#D9251C]">
+                              <ArrowDownRight className="h-4 w-4" />
+                              <span className="text-sm font-medium">-3.2%</span>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })}
                 </TableBody>
               </Table>
             </div>

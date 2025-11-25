@@ -12,9 +12,9 @@ import { fetchEvents } from "@/lib/api/events/api"
 import { fetchOrders } from "@/lib/api/api"
 import { useAuth } from "../../Context/AuthContext"
 import { OrderSheet } from "../Cashier/OrdeSheet"
-import { Eye, Plus, Search, Filter } from "lucide-react"
+import { Eye, Plus, Search, Filter, Trash } from "lucide-react"
 import { OrderDetailsModal } from "../Cashier/OrderDetails"
-import { StatusPill } from "../Status-pill"
+import { StatusPill } from "../status-pill"
 
 export default function CajaDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("")
@@ -62,7 +62,7 @@ export default function CajaDashboard() {
   const totalRevenue =
     orders?.reduce(
       (sum, order) =>
-        sum + order.items.reduce((itemSum, item) => itemSum + (item.menuItem?.price || 0) * item.quantity, 0),
+        sum + order.items.reduce((itemSum, item) => itemSum + (item.price || 0) * item.quantity, 0),
       0,
     ) || 0
 
@@ -70,47 +70,73 @@ export default function CajaDashboard() {
     <main className="flex flex-col min-h-screen bg-black">
       <div className="flex-1 p-4 md:p-6 lg:p-8 space-y-4">
         {/* Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl md:text-4xl font-bold text-white">Panel de Caja</h1>
-          <p className="text-white/60">Gestiona todos los pedidos del evento</p>
+        <div className="backdrop-blur-lg bg-gradient-blue border border-white/20 rounded-xl p-4 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between transition-all duration-300">
+            
+            {/* IZQUIERDA: Nombre del Evento y Fecha */}
+            <div className="space-y-1 mb-4 md:mb-0">
+                <h3 className="text-3xl font-bold text-blue-100 flex items-center">
+                    {events?.find((e) => e.id === selectedEventId)?.name}
+                </h3>
+                <p className="text-sm text-gray-200 ">
+                    Fecha: 2 de Octubre
+                </p>
+            </div>
+
+            {/* DERECHA: Selector de Evento Moderno */}
+            <div className="flex items-center space-x-3">
+                
+                <label className="text-sm font-medium text-gray-400 hidden sm:block">Cambiar Evento:</label>
+                
+                {/* El Select se integra con la estética de Glassmorphism */}
+                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                    
+                    {/* El Trigger parece un botón de acción estilizado */}
+                    <SelectTrigger className="w-full md:w-[250px] bg-white/10 border-white/30 text-white 
+                                              hover:bg-white/20 transition-colors duration-200">
+                        <SelectValue placeholder="Seleccionar otro evento..." />
+                    </SelectTrigger>
+                    
+                    {/* El contenido del Select mantiene el tema Oscuro */}
+                    <SelectContent className="bg-[var(--color-brand-black)] border-white/20">
+                        {events?.map((event) => (
+                            <SelectItem 
+                                key={event.id} 
+                                value={event.id}
+                                className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                            >
+                                {event.name}
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
         </div>
 
-        {/* Selector de Evento */}
+        
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="w-full sm:w-64">
-            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-              <SelectTrigger className="bg-white/10 border-white text-white h-10 text-sm">
-                <SelectValue placeholder="Selecciona un evento" />
-              </SelectTrigger>
-              <SelectContent>
-                {events?.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Agregar Sección */}
           </div>
 
           {/* KPIs */}
           {selectedEventId && (
-            <div className="flex gap-2 w-full sm:w-auto">
-              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-[#1E2C6D]/20 to-[#1E2C6D]/5 border border-white/20">
-                <div className="text-xs text-white/60">Pedidos</div>
-                <div className="text-xl font-bold text-[#1E2C6D]">{totalOrders}</div>
-              </div>
-              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5 border border-white/20">
-                <div className="text-xs text-white/60">Ingresos</div>
-                <div className="text-xl font-bold text-green-400">${totalRevenue.toFixed(2)}</div>
-              </div>
-              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-white/20">
-                <div className="text-xs text-white/60">Ticket</div>
-                <div className="text-xl font-bold text-orange-400">
-                  ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00"}
+              <div className="flex gap-2 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-[#1E2C6D]/20 to-[#1E2C6D]/5 border border-white/20">
+                  <div className="text-xs text-white/60">Pedidos</div>
+                  <div className="text-xl font-bold text-[#1E2C6D]">{totalOrders}</div>
+                </div>
+                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5 border border-white/20">
+                  <div className="text-xs text-white/60">Ingresos</div>
+                  <div className="text-xl font-bold text-green-400">${totalRevenue.toFixed(2)}</div>
+                </div>
+                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-white/20">
+                  <div className="text-xs text-white/60">Ticket</div>
+                  <div className="text-xl font-bold text-orange-400">
+                    ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00"}
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
         </div>
 
         {selectedEventId && (
@@ -119,7 +145,7 @@ export default function CajaDashboard() {
             <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
               <div className="flex flex-col sm:flex-row gap-3 flex-1">
                 {/* Search */}
-                <div className="relative flex-1">
+                <div className="relative flex-1 bg-black">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                   <Input
                     placeholder="Buscar por cliente..."
@@ -147,7 +173,7 @@ export default function CajaDashboard() {
 
               <Button
                 onClick={() => setIsOrderSheetOpen(true)}
-                className="bg-gradient-to-r from-[#1E2C6D] to-[#2a3d8f] hover:from-[#1E2C6D] hover:to-[#1E2C6D] text-white font-bold w-full sm:w-auto h-11"
+                className="bg-gradient-blue text-whitefont-bold w-full sm:w-auto h-11"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Realizar Pedido
@@ -155,7 +181,7 @@ export default function CajaDashboard() {
             </div>
 
             {/* Tabla de Pedidos */}
-            <Card className="backdrop-blur-xl bg-white/5 border border-white overflow-hidden">
+            <Card className="backdrop-blur-xl bg-white/5 border border-white-1 overflow-hidden">
               <CardHeader className="border-b border-white/10">
                 <CardTitle className="text-white">Pedidos del Evento</CardTitle>
               </CardHeader>
@@ -187,25 +213,34 @@ export default function CajaDashboard() {
                             <TableCell className="text-white font-medium">{order.customerIdentifier}</TableCell>
                             <TableCell className="text-white/70">{order.items.length} item(s)</TableCell>
                             <TableCell className="text-right">
-                              <span className="text-[#D9251C] font-bold">
+                              <span className="text-white font-bold">
                                 $
                                 {order.items
-                                  .reduce((total, item) => total + (item.menuItem?.price || 0) * item.quantity, 0)
+                                  .reduce((total, item) => total + (item.price || 0) * item.quantity, 0)
                                   .toFixed(2)}
                               </span>
                             </TableCell>
                             <TableCell>
                               <StatusPill status={order.status} />
                             </TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right space-x-4">
                               <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => handleOpenOrderDetails(order)}
-                                className="text-[#1E2C6D] hover:text-[#1E2C6D] hover:bg-[#1E2C6D]/10"
+                                className="border border-white text-white hover:bg-blue-900 hover:text-white hover:border-blue-900"
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver detalles
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleOpenOrderDetails(order)}
+                                className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-red-200 hover:border-red-700"
+                              >
+                                <Trash className="h-4 w-4" />
+                                
                               </Button>
                             </TableCell>
                           </TableRow>

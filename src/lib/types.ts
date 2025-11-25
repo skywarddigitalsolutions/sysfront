@@ -1,61 +1,81 @@
+// Backend response types
+export interface BackendLoginResponse {
+  id: string;
+  userName: string;
+  token: string;
+  role: string; // 'admin' | 'cajero' | 'cocina'
+  isActive?: boolean;
+}
+
+export interface BackendCheckStatusResponse {
+  userName: string;
+  token: string;
+  isActive: boolean;
+}
+
+// Updated User type for auth
 export interface User {
-  id: string
-  username: string
-  role: 'ADMIN' | 'CAJA' | 'COCINA'
+  id: string;
+  username: string;
+  role: 'ADMIN' | 'CAJA' | 'COCINA';
+  token?: string; // Added for auth
 }
 
 export interface Product {
-  id: string
-  name: string
-  description: string
-  price: number
+  id: string;
+  name: string;
+  description: string;
+  price: number;
 }
 
 export interface OrderItem {
-  id: string
-  quantity: number
-  menuItem: Product
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  customizations?: string[];
 }
 
 export interface Order {
-  id: string
-  createdAt: Date
-  updatedAt: Date
-  status: 'PENDIENTE' | 'EN_PREPARACION' | 'COMPLETADO'
-  userId: string
-  eventId: string
-  customerIdentifier: string
-  items: OrderItem[]
+  id: string;
+  orderNumber: string;
+  customerIdentifier: string;
+  status: string;
+  items: OrderItem[];
+  total: number;
+  createdAt: string;
+  specialRequests?: string;
 }
 
+
 export interface Event {
-  id: string
-  name: string
-  description: string
-  date: Date
+  id: string;
+  name: string;
+  description: string;
+  date: Date;
 }
 
 export interface MenuItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  stock: number
-  eventId: string
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  eventId: string;
   event: {
-    name: string
-  }
-  realPrice: number
+    name: string;
+  };
+  realPrice: number;
 }
 
 export interface EventStatistics {
-  totalOrders: number
-  totalRevenue: number
-  totalInvestment: number
-  pendingOrders: number
-  inProgressOrders: number
-  completedOrders: number
-  topSellingItem: string
-  topSellingItems: Record<string, number>
-  averageOrderValue: number
+  totalOrders: number;
+  totalRevenue: number;
+  totalInvestment: number;
+  pendingOrders: number;
+  inProgressOrders: number;
+  completedOrders: number;
+  topSellingItem: string;
+  topSellingItems: Record<string, number>;
+  averageOrderValue: number;
 }
