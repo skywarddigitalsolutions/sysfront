@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react'
 import { User } from '@/lib/types'
+import { httpClient } from '@/lib/api/httpClient'
 
 interface AuthContextType {
   user: User | null
@@ -15,29 +16,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    // Load user from sessionStorage on mount
+    const storedUser = sessionStorage.getItem('user')
+    const storedToken = sessionStorage.getItem('token')
+
+    if (storedUser && storedToken) {
+      const userData = JSON.parse(storedUser)
+      setUser({ ...userData, token: storedToken })
     }
   }, [])
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-      })
+      // Use httpClient to communicate with real backend
+      const response = await httpClient.login(username, password)
 
-      if (!response.ok) {
-        throw new Error('Error en la autenticación')
+      // Extract data from backend response (now includes role!)
+      const { id, userName, token, role } = response
+
+      // Create user object (ignore password hash from backend)
+      // Map backend role to frontend role type
+      // Backend: 'admin' | 'cajero' | 'cocina'
+      // Frontend: 'ADMIN' | 'CAJA' | 'COCINA'
+      const roleMap: Record<string, 'ADMIN' | 'CAJA' | 'COCINA'> = {
+        'admin': 'ADMIN',
+        'cajero': 'CAJA',
+        'cocina': 'COCINA'
       }
 
-      const userData = await response.json()
+      // Validar que el rol venga del backend y exista en el roleMap
+      if (!role) {
+        throw new Error('El backend no proporcionó un rol para el usuario')
+      }
+
+      const mappedRole = roleMap[role]
+      if (!mappedRole) {
+        throw new Error(`Rol desconocido recibido del backend: ${role}`)
+      }
+
+      const userData: User = {
+        id,
+        username: userName,
+        role: mappedRole,
+        token
+      }
+
+      // Save to sessionStorage (more secure than localStorage)
+      sessionStorage.setItem('token', token)
+      sessionStorage.setItem('user', JSON.stringify({
+        id,
+        username: userName,
+        role: mappedRole
+      }))
+
+      // Update state
       setUser(userData)
-      localStorage.setItem('user', JSON.stringify(userData))
+
       return true
     } catch (error) {
       console.error('Error durante el login:', error)
@@ -47,7 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = (): void => {
     setUser(null)
-    localStorage.removeItem('user')
+    sessionStorage.removeItem('user')
+    sessionStorage.removeItem('token')
   }
 
   return (
@@ -60,6 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
   if (context === undefined) throw new Error('useAuth must be used within an AuthProvider')
-  
+
   return context
 }

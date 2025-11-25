@@ -72,7 +72,7 @@ export function AppSidebar() {
           onClick={() => setIsCollapsed(!isCollapsed)}
           variant="outline"
           size="icon"
-          className="absolute -right-4 top-7 z-50 h-6 w-6 rounded-full border-2 border-[#1E2C6D] bg-gradient-to-r from-[#1E2C6D] to-[#D9251C] hover:opacity-80 shadow-lg"
+          className="absolute -right-4 top-7 z-50 h-6 w-6 rounded-full border-2 bg-sidebar  hover:bg-blue-900 shadow-lg"
         >
           {isCollapsed ? (
             <ChevronRight className="h-4 w-4 text-white" />
@@ -93,7 +93,7 @@ export function AppSidebar() {
             className={cn("transition-all duration-300", isCollapsed ? "w-8 h-8" : "w-12 h-12")}
           />
           {!isCollapsed && (
-            <h2 className="text-xl font-bold bg-gradient-to-r from-[#1E2C6D] to-[#D9251C] bg-clip-text text-transparent">
+            <h2 className="text-xl font-bold text-white">
               Batallón 1
             </h2>
           )}
