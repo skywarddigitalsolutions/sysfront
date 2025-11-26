@@ -18,7 +18,7 @@ export class HttpClient {
         // Request Interceptor: Add Token
         this.api.interceptors.request.use(config => {
             if (typeof window !== 'undefined') {
-                const token = sessionStorage.getItem('token');
+                const token = localStorage.getItem('token');
                 if (token) config.headers.Authorization = `Bearer ${token}`;
             }
             return config;
@@ -30,8 +30,12 @@ export class HttpClient {
             (error: AxiosError) => {
                 if (error.response?.status === 401) {
                     if (typeof window !== 'undefined') {
-                        sessionStorage.removeItem('user');
-                        window.location.href = '/login';
+                        // Limpiar sesión solo si no estamos en la página de login
+                        if (!window.location.pathname.includes('/login')) {
+                            localStorage.removeItem('user');
+                            localStorage.removeItem('token');
+                            window.location.href = '/login';
+                        }
                     }
                 }
                 return Promise.reject(error);

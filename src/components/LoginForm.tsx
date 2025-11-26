@@ -21,12 +21,16 @@ export default function LoginForm() {
     try {
       const success = await login(username, password)
       if (success) {
-        // Get user from sessionStorage since context might not be updated yet
-        const userData = sessionStorage.getItem('user')
+        // Get user from localStorage
+        const userData = localStorage.getItem('user')
         if (userData) {
           const parsedUser = JSON.parse(userData)
           const defaultRoute = getDefaultRouteForRole(parsedUser.role)
-          router.push(defaultRoute)
+
+          // Pequeño delay para asegurar que el estado se actualice
+          setTimeout(() => {
+            router.push(defaultRoute)
+          }, 100)
         } else {
           router.push('/')
         }

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useState, useContext, useEffect } from 'react'
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react'
 import { User } from '@/lib/types'
 import { authService } from '@/services/auth/authService'
 import { canAccessRoute } from '@/lib/route-protection'
@@ -10,21 +10,99 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>
   logout: () => void
   canAccess: (route: string) => boolean
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Función para limpiar la sesión
+  const clearSession = () => {
+    localStorage.removeItem('user')
+    localStorage.removeItem('token')
+    setUser(null)
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
+    }
+  }
+
+  // Función para configurar el refresh automático de tokens
+  const setupTokenRefresh = (token: string) => {
+    // Limpiar intervalo anterior si existe
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+    }
+
+    // Refresh cada 30 minutos (token dura 2 horas)
+    refreshIntervalRef.current = setInterval(async () => {
+      try {
+        const currentToken = localStorage.getItem('token')
+        if (currentToken) {
+          const response = await authService.checkAuthStatus(currentToken)
+
+          // Actualizar token renovado
+          localStorage.setItem('token', response.token)
+
+          // Actualizar usuario en el estado
+          if (user) {
+            setUser({ ...user, token: response.token })
+          }
+
+          console.log('Token renovado exitosamente')
+        }
+      } catch (error) {
+        console.error('Error al renovar token:', error)
+        // Si falla la renovación, cerrar sesión
+        clearSession()
+        window.location.href = '/login'
+      }
+    }, 30 * 60 * 1000) // 30 minutos
+  }
+
+  // Restaurar sesión al montar el componente
   useEffect(() => {
-    // Load user from sessionStorage on mount
-    const storedUser = sessionStorage.getItem('user')
-    const storedToken = sessionStorage.getItem('token')
+    const restoreSession = async () => {
+      const storedUser = localStorage.getItem('user')
+      const storedToken = localStorage.getItem('token')
 
-    if (storedUser && storedToken) {
-      const userData = JSON.parse(storedUser)
-      setUser({ ...userData, token: storedToken })
+      if (storedUser && storedToken) {
+        try {
+          // Validar que el token siga siendo válido
+          const response = await authService.checkAuthStatus(storedToken)
+
+          // Token válido, restaurar sesión con datos frescos
+          const userData = JSON.parse(storedUser)
+          setUser({ ...userData, token: response.token })
+
+          // Actualizar token si el backend devolvió uno nuevo
+          if (response.token !== storedToken) {
+            localStorage.setItem('token', response.token)
+          }
+
+          // Configurar refresh automático
+          setupTokenRefresh(response.token)
+        } catch (error) {
+          console.error('Token inválido o expirado:', error)
+          // Token inválido, limpiar sesión
+          clearSession()
+        }
+      }
+
+      setIsLoading(false)
+    }
+
+    restoreSession()
+
+    // Limpiar intervalo al desmontar
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
     }
   }, [])
 
@@ -59,9 +137,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token
       }
 
-      // Save to sessionStorage (more secure than localStorage)
-      sessionStorage.setItem('token', token)
-      sessionStorage.setItem('user', JSON.stringify({
+      // Save to localStorage (persists between sessions)
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify({
         id,
         username: userName,
         role: mappedRole
@@ -69,6 +147,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Update state
       setUser(userData)
+
+      // Configurar refresh automático de tokens
+      setupTokenRefresh(token)
 
       return true
     } catch (error) {
@@ -78,17 +159,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = (): void => {
-    setUser(null)
-    sessionStorage.removeItem('user')
-    sessionStorage.removeItem('token')
+    clearSession()
   }
 
   const canAccess = (route: string): boolean => {
     return canAccessRoute(user?.role || null, route)
   }
 
+  // Mostrar loading mientras se valida la sesión
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-xl">Cargando...</div>
+      </div>
+    )
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, canAccess }}>
+    <AuthContext.Provider value={{ user, login, logout, canAccess, isLoading }}>
       {children}
     </AuthContext.Provider>
   )
