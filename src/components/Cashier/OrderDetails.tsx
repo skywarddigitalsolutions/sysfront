@@ -3,74 +3,38 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { StatusPill } from "@/components/status-pill"
-import { Check, Edit, Trash2 } from "lucide-react"
-import {Order} from "@/lib/types"
-
+import { Order } from "@/features/orders/types"
 
 interface OrderDetailsModalProps {
   order: Order | null
   isOpen: boolean
   onClose: () => void
-  onStatusChange?: (status: "PENDIENTE" | "EN_PREPARACION" | "COMPLETADO") => void
-  onDelete?: () => void
 }
 
-export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDelete }: OrderDetailsModalProps) {
+export function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalProps) {
   if (!order) return null
-
-  const handleStatusChange = (newStatus: "PENDIENTE" | "EN_PREPARACION" | "COMPLETADO") => {
-    onStatusChange?.(newStatus)
-  }
-
-  const handleDelete = () => {
-    onDelete?.()
-    onClose()
-  }
-
-  const handleConfirm = () => {
-  console.log("Pedido confirmado:", order?.orderNumber)
-  onClose()
-}
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl bg-black border pt-82 border-white/20 max-h-[90vh] overflow-y-auto">
-      <DialogHeader className="pt-2 border-b border-white/10 pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <DialogTitle className="text-2xl font-bold text-white">
-              Detalles del Pedido
-            </DialogTitle>
-            <p className="text-white/60 text-sm mt-1">Orden #{order.orderNumber}</p>
-          </div>
+      <DialogContent className="max-w-2xl bg-black border pt-8 border-white/20 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pt-2 border-b border-white/10 pb-4">
+          <DialogTitle className="text-2xl font-bold text-white">
+            Detalles del Pedido
+          </DialogTitle>
+          <p className="text-white/60 text-sm mt-1">Orden #{order.orderNumber}</p>
+        </DialogHeader>
 
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="border-white/20 text-white hover:bg-white/10 flex items-center gap-1"
-            >
-              <Edit className="h-4 w-4" />
-              <span className="text-sm font-medium">Modificar</span>
-            </Button>
-          </div>
-        </div>
-      </DialogHeader>
-
-      {/* Content */}
-      <div className="space-y-4">
-          {/* Cliente */}
-        <div className="flex items-center justify-between">
-          <div className="">
+        {/* Content */}
+        <div className="space-y-4">
+          {/* Estado */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center py-2">
-              <span className="text-white font-semibold text-sm truncate text-right">
-                Nombre: {order.customerIdentifier}
-              </span>
+              <span className="text-white font-semibold text-sm">Estado:</span>
+            </div>
+            <div className="py-2 px-4">
+              <StatusPill status={order.status.name} />
             </div>
           </div>
-          <div className="py-2 px-4">
-            <StatusPill status={order.status}/>
-          </div>
-        </div>
 
           {/* Items */}
           <Card className="bg-white/5 border-white/20">
@@ -84,105 +48,43 @@ export function OrderDetailsModal({ order, isOpen, onClose, onStatusChange, onDe
                   className="flex justify-between items-center py-2 border-b border-white/10 last:border-b-0"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-white">{item.name}</p>
-                    {item.customizations && item.customizations.length > 0 && (
-                      <div className="bg-[#1E2C6D]/20 border border-[#1E2C6D]/50 rounded mt-2 p-2">
-                        <p className="text-xs text-[#1E2C6D] font-semibold mb-1">Personalizaciones:</p>
-                        <ul className="text-xs text-white/70 space-y-1">
-                          {item.customizations.map((custom, idx) => (
-                            <li key={idx}>• {custom}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+                    <p className="font-medium text-white capitalize">{item.product.name}</p>
+                    <p className="text-sm text-white/60">Cantidad: {item.qty}</p>
                   </div>
                   <div className="text-right ml-4">
-                    <p className="text-white/80 text-sm">x{item.quantity}</p>
-                    <p className="text-white font-bold">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-white font-bold">${(Number(item.unitPrice) * Number(item.qty)).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
             </CardContent>
           </Card>
 
-          <div className="bg-gradient-to-br from-black to-gray-700/50 border border-white/20 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-white/80 font-medium">Total:</span>
-              <span className="text-white font-bold text-2xl">${(order.total * 1.1).toFixed(2)}</span>
-            </div>
-          </div>
-
-          {/* Solicitudes Especiales */}
-          {order.specialRequests && (
+          {/* Observaciones */}
+          {order.observations && (
             <Card className="bg-orange-500/10 border-orange-500/30">
               <CardHeader>
-                <CardTitle className="text-sm text-orange-400">Solicitudes Especiales</CardTitle>
+                <CardTitle className="text-sm text-orange-400">Observaciones</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-white/80 text-sm">{order.specialRequests}</p>
+                <p className="text-white/80 text-sm">{order.observations}</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Status Change Buttons */}
-          <div className="border-t border-white/10 pt-4 space-y-2">
-            <p className="text-xs text-white/60 font-semibold uppercase">Cambiar Estado:</p>
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                onClick={() => handleStatusChange("PENDIENTE")}
-                variant={order.status === "PENDIENTE" ? "default" : "outline"}
-                size="sm"
-                className={
-                  order.status === "PENDIENTE"
-                    ? "bg-[#1E2C6D] hover:bg-[#1E2C6D]"
-                    : "border-white/20 text-white/80 hover:bg-white/10"
-                }
-              >
-                Pendiente
-              </Button>
-              <Button
-                onClick={() => handleStatusChange("EN_PREPARACION")}
-                variant={order.status === "EN_PREPARACION" ? "default" : "outline"}
-                size="sm"
-                className={
-                  order.status === "EN_PREPARACION"
-                    ? "bg-[#D9251C] hover:bg-[#D9251C]"
-                    : "border-white/20 text-white/80 hover:bg-white/10"
-                }
-              >
-                En Prep.
-              </Button>
-              <Button
-                onClick={() => handleStatusChange("COMPLETADO")}
-                variant={order.status === "COMPLETADO" ? "default" : "outline"}
-                size="sm"
-                className={
-                  order.status === "COMPLETADO"
-                    ? "bg-green-500 hover:bg-green-200"
-                    : "border-white/20 text-white/80 hover:bg-white/10"
-                }
-              >
-                Completado
-              </Button>
+          {/* Total */}
+          <div className="bg-gradient-to-br from-black to-gray-700/50 border border-white/20 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-white/80 font-medium">Total:</span>
+              <span className="text-white font-bold text-2xl">${Number(order.totalAmount).toFixed(2)}</span>
             </div>
           </div>
+        </div>
 
-          
-        </div>
-        
         <div className="flex justify-end gap-4 border-t border-white/10 mt-6 pt-6">
-          <div className="">
-            <Button onClick={handleDelete} variant="outline" className="w-full border-red-700 text-red-700 hover:bg-red-700 hover:text-white bg-transparent">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className=""> 
-            <Button onClick={handleConfirm} variant="outline" className="w-full border-green-400 text-green-400 hover:bg-green-400/10 bg-transparent" > 
-              <Check className="mr-2 h-4 w-4" /> Confirmar cambios
-            </Button> 
-          </div>
+          <Button onClick={onClose} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            Cerrar
+          </Button>
         </div>
-        
       </DialogContent>
     </Dialog>
   )

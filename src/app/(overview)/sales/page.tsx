@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { fetchEvents, fetchEventStatistics } from "@/lib/api/events/api"
-import { fetchOrders } from "@/lib/api/api"
 import type { Order } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

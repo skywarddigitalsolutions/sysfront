@@ -2,16 +2,21 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Plus, Minus, Edit2, Trash2 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Plus, Minus, Trash2, Loader2 } from "lucide-react"
+import { useCreateOrder } from "@/features/orders/hooks/useCreateOrder"
+import { useAvailableProducts } from "@/features/products/hooks/useProducts"
+import { useProductRecipe } from "@/features/products/hooks/useProducts"
+import { PaymentMethod } from "@/features/orders/types"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 
 interface OrderItem {
   id: string
   name: string
   price: number
   quantity: number
-  customizations?: string[]
+  removedIngredients: string[]
 }
 
 interface OrderSheetProps {
@@ -22,40 +27,28 @@ interface OrderSheetProps {
 }
 
 export function OrderSheet({ isOpen, onClose, eventId, userId }: OrderSheetProps) {
-  const [customerName, setCustomerName] = useState("")
   const [items, setItems] = useState<OrderItem[]>([])
-  const [quantity, setQuantity] = useState(1)
-  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("EFECTIVO")
 
-  const mockMenuItems = [
-    {
-      id: "1",
-      name: "Hamburguesa",
-      price: 15.99,
-      customizable: ["Queso", "Lechuga", "Tomate", "Cebolla"],
-      suggestions: ["Bebida", "Papas"],
-    },
-    {
-      id: "2",
-      name: "Pizza",
-      price: 18.99,
-      customizable: ["Mozzarella", "Pepperoni", "Champiñones"],
-      suggestions: ["Bebida", "Postre"],
-    },
-    { id: "3", name: "Bebida", price: 3.99, customizable: [], suggestions: [] },
-    { id: "4", name: "Postre", price: 8.99, customizable: [], suggestions: [] },
-    { id: "5", name: "Papas", price: 5.99, customizable: [], suggestions: [] },
-    { id: "6", name: "Alitas", price: 9.99, customizable: ["Picante", "BBQ"], suggestions: [] },
-  ]
+  const { mutate: createOrder, isPending: isCreating } = useCreateOrder(eventId)
+  const { data: products, isLoading: isLoadingProducts } = useAvailableProducts(eventId)
 
-  const handleAddItem = (item: (typeof mockMenuItems)[0]) => {
-    const existingItem = items.find((i) => i.id === item.id)
+  const handleAddItem = (product: any) => {
+    const existingItem = items.find((i) => i.id === product.productId)
     if (existingItem) {
-      setItems(items.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + quantity } : i)))
+      setItems(items.map((i) => (i.id === product.productId ? { ...i, quantity: i.quantity + 1 } : i)))
     } else {
-      setItems([...items, { ...item, quantity, customizations: [] }])
+      setItems([
+        ...items,
+        {
+          id: product.productId,
+          name: product.product.name,
+          price: Number(product.salePrice),
+          quantity: 1,
+          removedIngredients: [],
+        },
+      ])
     }
-    setQuantity(1)
   }
 
   const handleRemoveItem = (id: string) => {
@@ -70,154 +63,125 @@ export function OrderSheet({ isOpen, onClose, eventId, userId }: OrderSheetProps
     }
   }
 
-  const handleToggleCustomization = (itemId: string, customization: string) => {
+  const handleRemoveIngredient = (itemId: string, ingredientName: string) => {
     setItems(
-      items.map((item) => {
-        if (item.id === itemId) {
-          const customizations = item.customizations || []
-          const updated = customizations.includes(customization)
-            ? customizations.filter((c) => c !== customization)
-            : [...customizations, customization]
-          return { ...item, customizations: updated }
-        }
-        return item
-      }),
+      items.map((i) =>
+        i.id === itemId
+          ? {
+            ...i,
+            removedIngredients: i.removedIngredients.includes(ingredientName)
+              ? i.removedIngredients.filter((ing) => ing !== ingredientName)
+              : [...i.removedIngredients, ingredientName],
+          }
+          : i,
+      ),
     )
+  }
+
+  const generateObservations = () => {
+    const observations: string[] = []
+    items.forEach((item) => {
+      if (item.removedIngredients.length > 0) {
+        const removedList = item.removedIngredients.join(", ")
+        observations.push(`${item.name}: Sin ${removedList}`)
+      }
+    })
+    return observations.length > 0 ? observations.join("; ") : ""
   }
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
   const handleConfirm = () => {
-    console.log("Pedido creado:", { customerName, items, total, eventId })
-    setCustomerName("")
-    setItems([])
-    setQuantity(1)
-    setEditingItemId(null)
-    onClose()
+    const observations = generateObservations()
+    createOrder(
+      {
+        items: items.map((i) => ({ productId: i.id, qty: i.quantity })),
+        paymentMethod,
+        observations,
+      },
+      {
+        onSuccess: () => {
+          setItems([])
+          setPaymentMethod("EFECTIVO")
+          onClose()
+        },
+      },
+    )
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl bg-black border-2 border-white text-white max-h-[90vh] overflow-hidden flex flex-col p-0">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Realizar Pedido</DialogTitle>
+        </DialogHeader>
         <div className="flex h-full overflow-hidden">
           {/* LEFT COLUMN - PRODUCTS */}
           <div className="flex-1 border-r-2 border-white/20 flex flex-col overflow-hidden">
-
-
-             <div className="p-6 border-b-2 border-white/20">
-              <label className="text-xs font-semibold text-white/70 mb-2 block">Cliente</label>
-              <Input
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Ingresa nombre del cliente"
-                className="bg-white/10 border-white/30 text-white placeholder:text-white/40 h-10 text-sm"
-              />
+            <div className="p-6 border-b-2 border-white/20 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-white/70 mb-2 block">Método de Pago</label>
+                <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as PaymentMethod)}>
+                  <SelectTrigger className="bg-white/10 border-white/30 text-white h-10">
+                    <SelectValue placeholder="Seleccionar método" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black border-white/20 text-white">
+                    <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                    <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="p-6 border-white/20 bg-black">
               <h2 className="text-2xl font-bold text-white">Seleccionar productos</h2>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6">
-              <div className="grid grid-cols-2 gap-3">
-                {mockMenuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleAddItem(item)}
-                    className="p-4 bg-gradient-to-br from-[#1E2C6D]/80 to-[#1E2C6D]/40 hover:from-[#1E2C6D] hover:to-[#1E2C6D]/60 border border-white/20 rounded-lg text-white font-medium transition-all active:scale-95 group"
-                  >
-                    <div className="text-base font-bold">{item.name}</div>
-                    <div className="text-white text-sm font-semibold mt-1">${item.price.toFixed(2)}</div>
-                  </button>
-                ))}
-              </div>
+              {isLoadingProducts ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-8 w-8 animate-spin text-white" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {products?.map((item) => (
+                    <div key={item.productId} className="relative">
+                      <button
+                        onClick={() => handleAddItem(item)}
+                        className="w-full p-4 bg-gradient-to-br from-[#1E2C6D]/80 to-[#1E2C6D]/40 hover:from-[#1E2C6D] hover:to-[#1E2C6D]/60 border border-white/20 rounded-lg text-white font-medium transition-all active:scale-95 group text-left"
+                      >
+                        <div className="text-base font-bold capitalize">{item.product.name}</div>
+                        <div className="text-white text-sm font-semibold mt-1">${Number(item.salePrice).toFixed(2)}</div>
+                        <div className="text-white/50 text-xs mt-1">Stock: {item.currentQty}</div>
+                      </button>
+                      {item.hasRecipe && (
+                        <Badge className="absolute top-2 right-2 bg-orange-500 text-white text-xs">
+                          Receta
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* RIGHT COLUMN - ORDER */}
           <div className="w-96 flex flex-col pt-8 bg-black overflow-hidden">
-
-
             <div className="flex-1 overflow-y-auto p-6 space-y-3">
               {items.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-white/40 text-sm">
                   Agrega productos al pedido
                 </div>
               ) : (
-                items.map((item) => {
-                  const menuItem = mockMenuItems.find((m) => m.id === item.id)
-                  const isEditing = editingItemId === item.id
-
-                  return (
-                    <div key={item.id} className="space-y-2">
-                      <div className="bg-white/5 border border-white/20 rounded-lg p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-white font-bold text-sm">{item.name}</p>
-                            <p className="text-white text-sm font-bold mt-1">
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveItem(item.id)}
-                            className="p-1.5 hover:bg-[#D9251C]/20 rounded transition-all"
-                          >
-                            <Trash2 className="h-4 w-4 text-[#D9251C]" />
-                          </button>
-                        </div>
-
-                        <div className="flex items-center gap-2 mb-2">
-                          <button
-                            onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
-                            className="p-1 hover:bg-white/20 rounded"
-                          >
-                            <Minus className="h-4 w-4 text-white" />
-                          </button>
-                          <span className="flex-1 text-center text-white font-bold text-sm bg-white/5 rounded py-1">
-                            {item.quantity}
-                          </span>
-                          <button
-                            onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
-                            className="p-1 hover:bg-white/20 rounded"
-                          >
-                            <Plus className="h-4 w-4 text-white" />
-                          </button>
-                        </div>
-
-                        {menuItem?.customizable && menuItem.customizable.length > 0 && (
-                          <button
-                            onClick={() => setEditingItemId(isEditing ? null : item.id)}
-                            className="w-full text-xs py-1.5 bg-transparent border border-blue-900 hover:bg-blue-800 text-blue-900 hover:text-white rounded font-semibold transition-all flex items-center justify-center gap-1"
-                          >
-                            <Edit2 className="h-3 w-3" />
-                            Personalizar
-                          </button>
-                        )}
-                      </div>
-
-                      {isEditing && menuItem?.customizable && menuItem.customizable.length > 0 && (
-                        <div className="bg-gradient-blue rounded-lg p-3">
-                          <p className="text-xs font-bold text-white mb-2">Personalización:</p>
-                          <div className="space-y-2">
-                            {menuItem.customizable.map((custom) => (
-                              <button
-                                key={custom}
-                                onClick={() => handleToggleCustomization(item.id, custom)}
-                                className={`w-full text-xs px-3 py-2 rounded font-medium transition-all ${
-                                  item.customizations?.includes(custom)
-                                    ? "bg-[#D9251C] text-white"
-                                    : "bg-white/10 text-white/70 hover:bg-white/20"
-                                }`}
-                              >
-                                {item.customizations?.includes(custom) ? "X Sin " : "Sacar "}
-                                {custom}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
+                items.map((item) => (
+                  <OrderItemCard
+                    key={item.id}
+                    item={item}
+                    onQuantityChange={handleQuantityChange}
+                    onRemove={handleRemoveItem}
+                    onRemoveIngredient={handleRemoveIngredient}
+                  />
+                ))
               )}
             </div>
 
@@ -228,15 +192,97 @@ export function OrderSheet({ isOpen, onClose, eventId, userId }: OrderSheetProps
               </div>
               <Button
                 onClick={handleConfirm}
-                disabled={items.length === 0 || !customerName}
+                disabled={items.length === 0 || isCreating}
                 className="w-full bg-gradient-blue hover:blue-200 text-white font-bold h-12 text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirmar Pedido
+                {isCreating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Procesando...
+                  </>
+                ) : (
+                  "Confirmar Pedido"
+                )}
               </Button>
             </div>
           </div>
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+function OrderItemCard({
+  item,
+  onQuantityChange,
+  onRemove,
+  onRemoveIngredient,
+}: {
+  item: OrderItem
+  onQuantityChange: (id: string, quantity: number) => void
+  onRemove: (id: string) => void
+  onRemoveIngredient: (itemId: string, ingredientName: string) => void
+}) {
+  const { data: recipe } = useProductRecipe(item.id)
+
+  return (
+    <div className="space-y-2">
+      <div className="bg-white/5 border border-white/20 rounded-lg p-3">
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1">
+            <p className="text-white font-bold text-sm capitalize">{item.name}</p>
+            <p className="text-white text-sm font-bold mt-1">${(item.price * item.quantity).toFixed(2)}</p>
+          </div>
+          <button
+            onClick={() => onRemove(item.id)}
+            className="p-1.5 hover:bg-[#D9251C]/20 rounded transition-all"
+          >
+            <Trash2 className="h-4 w-4 text-[#D9251C]" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => onQuantityChange(item.id, item.quantity - 1)}
+            className="p-1 hover:bg-white/20 rounded"
+          >
+            <Minus className="h-4 w-4 text-white" />
+          </button>
+          <span className="flex-1 text-center text-white font-bold text-sm bg-white/5 rounded py-1">
+            {item.quantity}
+          </span>
+          <button
+            onClick={() => onQuantityChange(item.id, item.quantity + 1)}
+            className="p-1 hover:bg-white/20 rounded"
+          >
+            <Plus className="h-4 w-4 text-white" />
+          </button>
+        </div>
+
+        {/* Ingredients */}
+        {recipe && recipe.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-white/10">
+            <p className="text-xs text-white/60 mb-2">Ingredientes:</p>
+            <div className="flex flex-wrap gap-1">
+              {recipe.map((ingredient) => {
+                const isRemoved = item.removedIngredients.includes(ingredient.supply.name)
+                return (
+                  <button
+                    key={ingredient.supply.id}
+                    onClick={() => onRemoveIngredient(item.id, ingredient.supply.name)}
+                    className={`text-xs px-2 py-1 rounded transition-all ${isRemoved
+                      ? "bg-red-500/20 text-red-300 line-through"
+                      : "bg-white/10 text-white hover:bg-white/20"
+                      }`}
+                  >
+                    {ingredient.supply.name}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

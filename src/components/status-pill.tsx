@@ -9,13 +9,18 @@ type StatusPillProps = {
 export function StatusPill({ status }: StatusPillProps) {
   // Normalizamos el estado recibido del backend
   const normalizedStatus = (() => {
-    switch (status.toUpperCase()) {
+    const upperStatus = status.toUpperCase()
+    switch (upperStatus) {
+      case "PENDING":
       case "PENDIENTE":
         return "pending"
+      case "IN_PROGRESS":
       case "EN_PREPARACION":
         return "in_progress"
+      case "COMPLETED":
       case "COMPLETADO":
         return "completed"
+      case "DELIVERED":
       case "ENTREGADO":
         return "delivered"
       default:
@@ -25,7 +30,7 @@ export function StatusPill({ status }: StatusPillProps) {
 
   const statusConfig: Record<StatusType, { label: string; color: string }> = {
     pending: {
-      label: "No Preparado",
+      label: "Pendiente",
       color: "bg-red-950/30 text-red-400 border border-red-800",
     },
     in_progress: {

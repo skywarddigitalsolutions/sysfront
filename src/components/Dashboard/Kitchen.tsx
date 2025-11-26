@@ -8,8 +8,6 @@
   import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
   import { Badge } from "@/components/ui/badge"
   import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-  import { fetchEvents } from "@/lib/api/events/api"
-  import { fetchOrders, updateOrderStatus, fetchProducts } from "@/lib/api/api"
   import { Clock, ChefHat, CheckCircle2, AlertTriangle, Package } from "lucide-react"
   import { cn } from "@/lib/utils"
   import { StatusPill } from "@/components/status-pill"

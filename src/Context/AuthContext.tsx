@@ -2,7 +2,7 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react'
 import { User } from '@/lib/types'
-import { httpClient } from '@/lib/api/httpClient'
+import { authService } from '@/services/auth/authService'
 import { canAccessRoute } from '@/lib/route-protection'
 
 interface AuthContextType {
@@ -30,8 +30,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Use httpClient to communicate with real backend
-      const response = await httpClient.login(username, password)
+      // Use authService to communicate with real backend
+      const response = await authService.login(username, password)
 
       // Extract data from backend response (now includes role!)
       const { id, userName, token, role } = response
@@ -47,14 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Validar que el rol venga del backend y exista en el roleMap
-      if (!role) {
-        throw new Error('El backend no proporcionó un rol para el usuario')
-      }
+      if (!role) throw new Error('El backend no proporcionó un rol para el usuario')
 
       const mappedRole = roleMap[role]
-      if (!mappedRole) {
-        throw new Error(`Rol desconocido recibido del backend: ${role}`)
-      }
+      if (!mappedRole) throw new Error(`Rol desconocido recibido del backend: ${role}`)
 
       const userData: User = {
         id,

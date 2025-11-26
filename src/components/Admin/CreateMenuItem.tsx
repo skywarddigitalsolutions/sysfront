@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
-import { fetchEvents } from '@/lib/api/events/api'
-import { createMenuItem } from '@/lib/api/api'
 import { Event } from '@/lib/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'

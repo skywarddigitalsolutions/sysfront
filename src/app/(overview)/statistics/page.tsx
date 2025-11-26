@@ -1,7 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { fetchEvents, fetchEventStatistics } from "@/lib/api/events/api"
 import type { Event, EventStatistics } from "@/lib/types"
 import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"

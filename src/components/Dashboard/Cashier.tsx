@@ -1,20 +1,20 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { useQuery } from "@tanstack/react-query"
-import type { Order, Event } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
-import { fetchEvents } from "@/lib/api/events/api"
-import { fetchOrders } from "@/lib/api/api"
+import { useActiveEvents } from "@/features/events/hooks/useEvents"
+import { useOrders } from "@/features/orders/hooks/useOrders"
 import { useAuth } from "../../Context/AuthContext"
 import { OrderSheet } from "../Cashier/OrdeSheet"
-import { Eye, Plus, Search, Filter, Trash } from "lucide-react"
+import { Eye, Plus, Search, Filter } from "lucide-react"
 import { OrderDetailsModal } from "../Cashier/OrderDetails"
 import { StatusPill } from "../status-pill"
+import { Order } from "@/features/orders/types"
+import { formatEventDate } from "@/lib/helpers/date"
 
 export default function CajaDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("")
@@ -22,12 +22,9 @@ export default function CajaDashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const { user } = useAuth()
 
-  const { data: events } = useQuery<Event[]>({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
-  })
+  const { user } = useAuth()
+  const { data: events } = useActiveEvents()
 
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) {
@@ -36,19 +33,14 @@ export default function CajaDashboard() {
     }
   }, [events, selectedEventId])
 
-  const { data: orders, isLoading: isLoadingOrders } = useQuery<Order[]>({
-    queryKey: ["orders", selectedEventId],
-    queryFn: () => fetchOrders(selectedEventId),
-    enabled: !!selectedEventId,
-    refetchInterval: 10000,
-  })
+  const { data: orders, isLoading: isLoadingOrders } = useOrders(selectedEventId)
 
   const filteredOrders = useMemo(() => {
     if (!orders) return []
 
     return orders.filter((order) => {
-      const matchesSearch = order.customerIdentifier.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter
+      const matchesSearch = order.customerIdentifier?.toLowerCase().includes(searchTerm.toLowerCase()) ?? true
+      const matchesStatus = statusFilter === "all" || order.status.name === statusFilter
 
       return matchesSearch && matchesStatus
     })
@@ -59,60 +51,56 @@ export default function CajaDashboard() {
   }
 
   const totalOrders = orders?.length || 0
-  const totalRevenue =
-    orders?.reduce(
-      (sum, order) =>
-        sum + order.items.reduce((itemSum, item) => itemSum + (item.price || 0) * item.quantity, 0),
-      0,
-    ) || 0
+  const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.totalAmount), 0) || 0
 
   return (
     <main className="flex flex-col min-h-screen bg-black">
       <div className="flex-1 p-4 md:p-6 lg:p-8 space-y-4">
         {/* Header */}
         <div className="backdrop-blur-lg bg-gradient-blue border border-white/20 rounded-xl p-4 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between transition-all duration-300">
-            
-            {/* IZQUIERDA: Nombre del Evento y Fecha */}
-            <div className="space-y-1 mb-4 md:mb-0">
-                <h3 className="text-3xl font-bold text-blue-100 flex items-center">
-                    {events?.find((e) => e.id === selectedEventId)?.name}
-                </h3>
-                <p className="text-sm text-gray-200 ">
-                    Fecha: 2 de Octubre
-                </p>
-            </div>
 
-            {/* DERECHA: Selector de Evento Moderno */}
-            <div className="flex items-center space-x-3">
-                
-                <label className="text-sm font-medium text-gray-400 hidden sm:block">Cambiar Evento:</label>
-                
-                {/* El Select se integra con la estética de Glassmorphism */}
-                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                    
-                    {/* El Trigger parece un botón de acción estilizado */}
-                    <SelectTrigger className="w-full md:w-[250px] bg-white/10 border-white/30 text-white 
+          {/* IZQUIERDA: Nombre del Evento y Fecha */}
+          <div className="space-y-1 mb-4 md:mb-0">
+            <h3 className="text-3xl font-bold text-blue-100 flex items-center">
+              {events?.find((e) => e.id === selectedEventId)?.name}
+            </h3>
+            <p className="text-sm text-gray-200 ">
+              {events?.find((e) => e.id === selectedEventId)?.startDate &&
+                formatEventDate(events.find((e) => e.id === selectedEventId)!.startDate)}
+            </p>
+          </div>
+
+          {/* DERECHA: Selector de Evento Moderno */}
+          <div className="flex items-center space-x-3">
+
+            <label className="text-sm font-medium text-gray-400 hidden sm:block">Cambiar Evento:</label>
+
+            {/* El Select se integra con la estética de Glassmorphism */}
+            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+
+              {/* El Trigger parece un botón de acción estilizado */}
+              <SelectTrigger className="w-full md:w-[250px] bg-white/10 border-white/30 text-white 
                                               hover:bg-white/20 transition-colors duration-200">
-                        <SelectValue placeholder="Seleccionar otro evento..." />
-                    </SelectTrigger>
-                    
-                    {/* El contenido del Select mantiene el tema Oscuro */}
-                    <SelectContent className="bg-[var(--color-brand-black)] border-white/20">
-                        {events?.map((event) => (
-                            <SelectItem 
-                                key={event.id} 
-                                value={event.id}
-                                className="text-white hover:bg-gray-800 focus:bg-gray-800"
-                            >
-                                {event.name}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                <SelectValue placeholder="Seleccionar otro evento..." />
+              </SelectTrigger>
+
+              {/* El contenido del Select mantiene el tema Oscuro */}
+              <SelectContent className="bg-[var(--color-brand-black)] border-white/20">
+                {events?.map((event) => (
+                  <SelectItem
+                    key={event.id}
+                    value={event.id}
+                    className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                  >
+                    {event.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        
+
         <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
           <div className="w-full sm:w-64">
             {/* Agregar Sección */}
@@ -120,23 +108,23 @@ export default function CajaDashboard() {
 
           {/* KPIs */}
           {selectedEventId && (
-              <div className="flex gap-2 w-full sm:w-auto">
-                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-[#1E2C6D]/20 to-[#1E2C6D]/5 border border-white/20">
-                  <div className="text-xs text-white/60">Pedidos</div>
-                  <div className="text-xl font-bold text-[#1E2C6D]">{totalOrders}</div>
-                </div>
-                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5 border border-white/20">
-                  <div className="text-xs text-white/60">Ingresos</div>
-                  <div className="text-xl font-bold text-green-400">${totalRevenue.toFixed(2)}</div>
-                </div>
-                <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-white/20">
-                  <div className="text-xs text-white/60">Ticket</div>
-                  <div className="text-xl font-bold text-orange-400">
-                    ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00"}
-                  </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-[#1E2C6D]/20 to-[#1E2C6D]/5 border border-white/20">
+                <div className="text-xs text-white/60">Pedidos</div>
+                <div className="text-xl font-bold text-[#1E2C6D]">{totalOrders}</div>
+              </div>
+              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-green-500/20 to-green-500/5 border border-white/20">
+                <div className="text-xs text-white/60">Ingresos</div>
+                <div className="text-xl font-bold text-green-400">${totalRevenue.toFixed(2)}</div>
+              </div>
+              <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-white/20">
+                <div className="text-xs text-white/60">Ticket</div>
+                <div className="text-xl font-bold text-orange-400">
+                  ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00"}
                 </div>
               </div>
-            )}
+            </div>
+          )}
         </div>
 
         {selectedEventId && (
@@ -163,10 +151,9 @@ export default function CajaDashboard() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos los estados</SelectItem>
-                    <SelectItem value="pending">Pendientes</SelectItem>
-                    <SelectItem value="in-progress">En Progreso</SelectItem>
-                    <SelectItem value="ready">Listo para Retirar</SelectItem>
-                    <SelectItem value="completed">Completados</SelectItem>
+                    <SelectItem value="PENDING">Pendientes</SelectItem>
+                    <SelectItem value="IN_PROGRESS">En Progreso</SelectItem>
+                    <SelectItem value="COMPLETED">Completados</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -196,7 +183,6 @@ export default function CajaDashboard() {
                       <TableHeader>
                         <TableRow className="border-b border-white/20 hover:bg-transparent">
                           <TableHead className="text-white/70">N° Orden</TableHead>
-                          <TableHead className="text-white/70">Cliente</TableHead>
                           <TableHead className="text-white/70">Items</TableHead>
                           <TableHead className="text-white/70 text-right">Total</TableHead>
                           <TableHead className="text-white/70">Estado</TableHead>
@@ -209,21 +195,18 @@ export default function CajaDashboard() {
                             key={order.id}
                             className="border-b border-white/5 hover:bg-white/5 transition-colors"
                           >
-                            <TableCell className="text-white font-mono text-sm">#{order.id.slice(0, 6)}</TableCell>
-                            <TableCell className="text-white font-medium">{order.customerIdentifier}</TableCell>
+                            <TableCell className="text-white font-mono text-sm">#{order.orderNumber}</TableCell>
                             <TableCell className="text-white/70">{order.items.length} item(s)</TableCell>
                             <TableCell className="text-right">
                               <span className="text-white font-bold">
                                 $
-                                {order.items
-                                  .reduce((total, item) => total + (item.price || 0) * item.quantity, 0)
-                                  .toFixed(2)}
+                                {Number(order.totalAmount).toFixed(2)}
                               </span>
                             </TableCell>
                             <TableCell>
-                              <StatusPill status={order.status} />
+                              <StatusPill status={order.status.name} />
                             </TableCell>
-                            <TableCell className="text-right space-x-4">
+                            <TableCell className="text-right">
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -232,15 +215,6 @@ export default function CajaDashboard() {
                               >
                                 <Eye className="h-4 w-4 mr-2" />
                                 Ver detalles
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleOpenOrderDetails(order)}
-                                className="text-red-700 border border-red-700 hover:bg-red-700 hover:text-red-200 hover:border-red-700"
-                              >
-                                <Trash className="h-4 w-4" />
-                                
                               </Button>
                             </TableCell>
                           </TableRow>
