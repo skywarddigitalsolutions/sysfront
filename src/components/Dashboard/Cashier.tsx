@@ -14,7 +14,7 @@ import { Eye, Plus, Search, Filter } from "lucide-react"
 import { OrderDetailsModal } from "../Cashier/OrderDetails"
 import { StatusPill } from "../status-pill"
 import { Order } from "@/features/orders/types"
-import { formatEventDate } from "@/lib/helpers/date"
+import { formatEventDate } from "@/helpers/date"
 
 export default function CajaDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("")
