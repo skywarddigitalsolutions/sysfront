@@ -14,6 +14,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -52,6 +53,7 @@ export function AppSidebar() {
         { icon: Package, label: "Inventario", href: "/inventory" },
         { icon: TrendingUp, label: "Ventas", href: "/sales" },
         { icon: Calendar, label: "Eventos", href: "/create-event" },
+        { icon: User, label: "Usuarios", href: "/create-users" },
       ]
       : []),
     ...(user?.role === "CAJA" ? [{ icon: CreditCard, label: "Caja", href: "/cashier" }] : []),
