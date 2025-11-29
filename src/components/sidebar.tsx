@@ -67,21 +67,31 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider>
-      <Sidebar
-        className={cn("relative transition-all duration-300 border-r border-white/10", isCollapsed ? "w-16" : "w-64")}
+      {/* Botón de toggle fuera del Sidebar para evitar que sea cortado */}
+      <Button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        variant="outline"
+        size="icon"
+        className="h-6 w-6 rounded-full border-2 bg-sidebar hover:bg-blue-900 shadow-lg"
+        style={{
+          position: 'fixed',
+          left: isCollapsed ? '52px' : '244px', // 64px - 12px o 256px - 12px
+          top: '28px', // top-7 = 1.75rem = 28px
+          zIndex: 50,
+          transition: 'left 300ms'
+        }}
       >
-        <Button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          variant="outline"
-          size="icon"
-          className="absolute -right-4 top-7 z-50 h-6 w-6 rounded-full border-2 bg-sidebar  hover:bg-blue-900 shadow-lg"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4 text-white" />
-          ) : (
-            <ChevronLeft className="h-4 w-4 text-white" />
-          )}
-        </Button>
+        {isCollapsed ? (
+          <ChevronRight className="h-4 w-4 text-white" />
+        ) : (
+          <ChevronLeft className="h-4 w-4 text-white" />
+        )}
+      </Button>
+
+      <Sidebar
+        style={{ position: 'fixed', height: '100vh', overflowY: 'auto', overflowX: 'hidden', left: 0, top: 0, zIndex: 40 }}
+        className={cn("transition-all duration-300 border-r border-white/10", isCollapsed ? "w-16" : "w-64")}
+      >
 
         <SidebarHeader
           className={cn(

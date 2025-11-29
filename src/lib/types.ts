@@ -79,3 +79,5 @@ export interface EventStatistics {
   topSellingItems: Record<string, number>;
   averageOrderValue: number;
 }
+
+

@@ -46,24 +46,66 @@ export async function updateMenuItemInfo(item: MenuItem): Promise<MenuItem> {
 
 
 // Funciones para usuarios
-export async function fetchUsers(): Promise<User[]> {
-  const response = await fetch('/api/users')
+export async function fetchUsers(isActive?: boolean): Promise<User[]> {
+  const url = isActive !== undefined ? `/api/users?isActive=${isActive}` : '/api/users'
+  const response = await fetch(url)
   if (!response.ok) {
     throw new Error('Error al obtener usuarios')
   }
   return response.json()
 }
 
-export async function createUser(data: { username: string; password: string; role: 'ADMIN' | 'CAJA' | 'COCINA' }): Promise<User> {
+export async function fetchAvailableRoles(): Promise<{ id: string; name: string }[]> {
+  const response = await fetch('/api/roles')
+  if (!response.ok) {
+    throw new Error('Error al obtener roles')
+  }
+  return response.json()
+}
+
+export async function createUser(data: { userName: string; password: string; roleId: string }): Promise<User> {
   const response = await fetch('/api/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   })
   if (!response.ok) {
-    throw new Error('Error al crear usuario')
+    const errorData = await response.json()
+    throw new Error(errorData.message || 'Error al crear usuario')
   }
   return response.json()
+}
+
+export async function activateUser(userId: string): Promise<void> {
+  const response = await fetch(`/api/users/${userId}/activate`, {
+    method: 'PATCH',
+  })
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.message || 'Error al activar usuario')
+  }
+}
+
+export async function deactivateUser(userId: string): Promise<void> {
+  const response = await fetch(`/api/users/${userId}/deactivate`, {
+    method: 'PATCH',
+  })
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.message || 'Error al desactivar usuario')
+  }
+}
+
+export async function resetUserPassword(userId: string, password: string): Promise<void> {
+  const response = await fetch(`/api/users/${userId}/reset-password`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newPassword: password }),
+  })
+  if (!response.ok) {
+    const errorData = await response.json()
+    throw new Error(errorData.message || 'Error al blanquear contraseña')
+  }
 }
 
 // Funciones para órdenes
