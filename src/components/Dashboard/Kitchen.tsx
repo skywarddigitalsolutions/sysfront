@@ -78,18 +78,19 @@ function OrderDetailsModal({
                 <p className="font-semibold">${(Number(item.unitPrice) * item.qty).toFixed(2)}</p>
               </div>
             ))}
+
+            {order.observations && (
+              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
+                <h3 className="font-semibold text-sm text-orange-400 mb-2">Observaciones</h3>
+                <p className="text-sm">{order.observations}</p>
+              </div>
+            )}
           </div>
 
-          {order.observations && (
-            <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
-              <h3 className="font-semibold text-sm text-orange-400 mb-2">Observaciones</h3>
-              <p className="text-sm">{order.observations}</p>
-            </div>
-          )}
 
           <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">
             <span>Total</span>
-            <span className="text-[#90ee90]">${Number(order.totalAmount).toFixed(2)}</span>
+            <span className="text-white">${Number(order.totalAmount).toFixed(2)}</span>
           </div>
 
           <div className="flex gap-2">
@@ -99,7 +100,7 @@ function OrderDetailsModal({
                   onStartPreparation(order.id)
                   onClose()
                 }}
-                className="flex-1 bg-yellow-500 hover:bg-yellow-600"
+                className="flex-1 bg-red-500 hover:bg-yellow-500"
               >
                 <ChefHat className="h-4 w-4 mr-2" />
                 Iniciar Preparación
@@ -111,7 +112,7 @@ function OrderDetailsModal({
                   onCompletePreparation(order.id)
                   onClose()
                 }}
-                className="flex-1 bg-green-500 hover:bg-green-600"
+                className="flex-1 bg-yellow-500 hover:bg-green-500"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Marcar Completado
@@ -143,7 +144,7 @@ function OrderCard({
           borderColor: "border-l-red-500",
           icon: Clock,
           actionLabel: "Iniciar",
-          actionColor: "bg-yellow-500 hover:bg-yellow-600",
+          actionColor: "bg-red-500 hover:bg-red-600",
           nextAction: onStartPreparation,
         }
       case "IN_PROGRESS":
@@ -152,7 +153,7 @@ function OrderCard({
           borderColor: "border-l-yellow-500",
           icon: ChefHat,
           actionLabel: "Completar",
-          actionColor: "bg-green-500 hover:bg-green-600",
+          actionColor: "bg-yellow-500 hover:bg-yellow-600",
           nextAction: onCompletePreparation,
         }
       case "COMPLETED":
@@ -186,14 +187,14 @@ function OrderCard({
       <CardContent className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-2xl font-bold text-white mb-1">Pedido #{order.orderNumber}</h3>
+            <h3 className="text-lg font-light text-white mb-1">Pedido #{order.orderNumber}</h3>
           </div>
           <StatusPill status={order.status.name} />
         </div>
 
         <div className="space-y-2 mb-4">
           {order.items.map((item, idx) => (
-            <div key={`${order.id}-${item.id}-${idx}`} className="flex justify-between text-sm">
+            <div key={`${order.id}-${item.id}-${idx}`} className="flex justify-between text-base">
               <span className="font-medium capitalize text-white">
                 {formatQty(item.qty)}x {item.product.name}
               </span>
@@ -201,9 +202,16 @@ function OrderCard({
           ))}
         </div>
 
+        {/* Observaciones */}
+        {order.observations && (
+          <div className="mb-4 p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+            <p className="text-sm text-orange-300">{order.observations}</p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-lg font-bold text-white">
-            Total: <span className="text-[#90ee90]">${Number(order.totalAmount).toFixed(2)}</span>
+            Total: <span className="text-white">${Number(order.totalAmount).toFixed(2)}</span>
           </div>
           {config.actionLabel && config.nextAction && (
             <Button
@@ -225,6 +233,7 @@ function OrderCard({
 export default function CocinaDashboard() {
   const [selectedEventId, setSelectedEventId] = useState("")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [statusFilter, setStatusFilter] = useState<string | null>(null) // null = mostrar todos
 
   const { data: events } = useActiveEvents()
   const { data: orders, isLoading: isLoadingOrders } = useKitchenOrders(selectedEventId)
@@ -299,7 +308,13 @@ export default function CocinaDashboard() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Card className="border-l-4 border-l-red-500">
+          <Card
+            className={cn(
+              "border-l-4 border-l-red-500 cursor-pointer transition-all hover:shadow-md hover:shadow-red-500/30",
+              statusFilter === "PENDING" && "bg-red-500/30"
+            )}
+            onClick={() => setStatusFilter(statusFilter === "PENDING" ? null : "PENDING")}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -313,7 +328,13 @@ export default function CocinaDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-yellow-500">
+          <Card
+            className={cn(
+              "border-l-4 border-l-yellow-500 cursor-pointer transition-all hover:shadow-md hover:shadow-yellow-500/30",
+              statusFilter === "IN_PROGRESS" && "bg-yellow-500/30"
+            )}
+            onClick={() => setStatusFilter(statusFilter === "IN_PROGRESS" ? null : "IN_PROGRESS")}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -327,7 +348,13 @@ export default function CocinaDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-green-500">
+          <Card
+            className={cn(
+              "border-l-4 border-l-green-500 cursor-pointer transition-all hover:shadow-md hover:shadow-green-500/30",
+              statusFilter === "COMPLETED" && "bg-green-500/30"
+            )}
+            onClick={() => setStatusFilter(statusFilter === "COMPLETED" ? null : "COMPLETED")}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -352,7 +379,7 @@ export default function CocinaDashboard() {
             ) : orders && orders.length > 0 ? (
               <>
                 {/* Pendientes */}
-                {pendingOrders.length > 0 && (
+                {(!statusFilter || statusFilter === "PENDING") && pendingOrders.length > 0 && (
                   <div>
                     <h2 className="text-xl font-bold text-red-600 mb-4 flex items-center gap-2">
                       <Clock className="h-5 w-5" />
@@ -373,7 +400,7 @@ export default function CocinaDashboard() {
                 )}
 
                 {/* En Preparación */}
-                {inProgressOrders.length > 0 && (
+                {(!statusFilter || statusFilter === "IN_PROGRESS") && inProgressOrders.length > 0 && (
                   <div>
                     <h2 className="text-xl font-bold text-yellow-600 mb-4 flex items-center gap-2">
                       <ChefHat className="h-5 w-5" />
@@ -394,7 +421,7 @@ export default function CocinaDashboard() {
                 )}
 
                 {/* Completados */}
-                {completedOrders.length > 0 && (
+                {(!statusFilter || statusFilter === "COMPLETED") && completedOrders.length > 0 && (
                   <div>
                     <h2 className="text-xl font-bold text-green-600 mb-4 flex items-center gap-2">
                       <CheckCircle2 className="h-5 w-5" />

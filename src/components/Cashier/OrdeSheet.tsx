@@ -262,7 +262,7 @@ function OrderItemCard({
         {/* Ingredients */}
         {recipe && recipe.length > 0 && (
           <div className="mt-3 pt-3 border-t border-white/10">
-            <p className="text-xs text-white/60 mb-2">Ingredientes:</p>
+            <p className="text-xs text-white/60 mb-2">Quitar:</p>
             <div className="flex flex-wrap gap-1">
               {recipe.map((ingredient) => {
                 const isRemoved = item.removedIngredients.includes(ingredient.supply.name)
