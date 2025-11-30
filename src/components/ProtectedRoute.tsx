@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
     requiredRoles: Array<'ADMIN' | 'CAJA' | 'COCINA'>
 }
 
-export default function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
     const { user, isLoading } = useAuth()
     const router = useRouter()
     const pathname = usePathname()

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventsService } from '../services/events.service';
+import { UpdateEventDto } from '../types';
 
 export const useEvents = () => {
     return useQuery({
@@ -42,7 +43,7 @@ export const useEventMutations = () => {
     });
 
     const updateEvent = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => eventsService.update(id, data),
+        mutationFn: ({ id, data }: { id: string; data: UpdateEventDto }) => eventsService.update(id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['events'] });
         },

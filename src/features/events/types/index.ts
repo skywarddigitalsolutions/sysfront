@@ -13,8 +13,8 @@ export interface EventStatistics {
     event: {
         id: string;
         name: string;
-        startDate: Date;
-        endDate: Date;
+        startDate: string;
+        endDate: string;
         isClosed: boolean;
     };
     summary: {
@@ -25,8 +25,11 @@ export interface EventStatistics {
         totalRefunds: number;
         netRevenue: number;
         salesByMethod: {
-            EFECTIVO: { total: number; net: number };
-            TRANSFERENCIA: { total: number; net: number };
+            [key: string]: {
+                completed: { count: number; amount: number };
+                cancelled: { count: number; amount: number };
+                net: number;
+            };
         };
         totalInvestment: number;
         totalSupplies: number;

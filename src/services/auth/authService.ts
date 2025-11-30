@@ -1,4 +1,5 @@
 import { httpClient } from '@/lib/http/httpClient';
+import { AxiosError } from 'axios';
 import { BackendLoginResponse, BackendCheckStatusResponse } from '@/lib/types';
 
 /**
@@ -15,9 +16,10 @@ class AuthService {
     async login(userName: string, password: string): Promise<BackendLoginResponse> {
         try {
             return await httpClient.post<BackendLoginResponse>('/auth/login', { userName, password });
-        } catch (error: any) {
+        } catch (error) {
+            const axiosError = error as AxiosError;
             // Mapear errores del axios a mensajes amigables
-            if (error.response?.status === 401) {
+            if (axiosError.response?.status === 401) {
                 throw new Error('Credenciales inválidas');
             }
             throw new Error('Error al iniciar sesión');
@@ -38,8 +40,9 @@ class AuthService {
                     'Authorization': `Bearer ${token}`,
                 },
             });
-        } catch (error: any) {
-            if (error.response?.status === 401) {
+        } catch (error) {
+            const axiosError = error as AxiosError;
+            if (axiosError.response?.status === 401) {
                 throw new Error('Token inválido o expirado');
             }
             throw new Error('Error al verificar autenticación');

@@ -1,5 +1,5 @@
 import { httpClient } from '@/lib/http/httpClient';
-import { Product, CreateProductDto, UpdateProductDto, AssignSuppliesDto } from '../types';
+import { Product, CreateProductDto, UpdateProductDto, AssignSuppliesDto, ProductSupply } from '../types';
 import { PaginationParams } from '@/features/supplies/types';
 
 export const productsService = {
@@ -20,7 +20,7 @@ export const productsService = {
   },
 
   getSupplies: async (id: string) => {
-    return httpClient.get(`/products/${id}/supplies`);
+    return httpClient.get<ProductSupply[]>(`/products/${id}/supplies`);
   },
 
   create: async (data: CreateProductDto) => {

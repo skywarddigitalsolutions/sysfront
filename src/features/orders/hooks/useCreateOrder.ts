@@ -16,10 +16,11 @@ export const useCreateOrder = (eventId: string) => {
                 description: 'El pedido se ha registrado exitosamente.',
             });
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onError: (error: any) => {
             toast({
                 title: 'Error',
-                description: error.response?.data?.message || 'No se pudo crear la orden.',
+                description: error?.response?.data?.message || 'No se pudo crear la orden.',
                 variant: 'destructive',
             });
         },

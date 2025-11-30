@@ -1,6 +1,6 @@
 import { httpClient } from '@/lib/http/httpClient';
 import { Event } from '../types';
-import { EventStatistics } from '../types';
+import { EventStatistics, CreateEventDto, UpdateEventDto } from '../types';
 
 export const eventsService = {
     getAll: async () => {
@@ -19,11 +19,11 @@ export const eventsService = {
         return httpClient.get<EventStatistics>(`/events/${id}/stats`);
     },
 
-    create: async (data: any) => {
+    create: async (data: CreateEventDto) => {
         return httpClient.post<Event>('/events', data);
     },
 
-    update: async (id: string, data: any) => {
+    update: async (id: string, data: UpdateEventDto) => {
         return httpClient.patch<Event>(`/events/${id}`, data);
     },
 

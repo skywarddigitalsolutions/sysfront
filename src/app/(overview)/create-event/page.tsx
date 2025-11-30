@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Calendar, Plus, Copy, Edit, X, Check, Search } from "lucide-react"
+import { Calendar, Plus, Copy, Edit, Check, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,7 +16,7 @@ import {
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { useQueryClient } from "@tanstack/react-query"
+
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { useEvents, useEventMutations } from "@/features/events/hooks/useEvents"
 import type { Event, CreateEventDto } from "@/features/events/types"
@@ -30,7 +30,6 @@ export default function EventosDashboard() {
 }
 
 function EventosContent() {
-  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "upcoming" | "completed">("all")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -45,7 +44,7 @@ function EventosContent() {
 
   const { data: events = [] } = useEvents()
 
-  const { createEvent, updateEvent, deleteEvent } = useEventMutations()
+  const { createEvent, updateEvent } = useEventMutations()
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -238,7 +237,7 @@ function EventosContent() {
               className="pl-9 bg-white/5 border-white/20 text-white placeholder:text-white/40"
             />
           </div>
-          <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
+          <Select value={statusFilter} onValueChange={(value: "all" | "active" | "upcoming" | "completed") => setStatusFilter(value)}>
             <SelectTrigger className="w-full sm:w-48 bg-white/5 border-white/20 text-white">
               <SelectValue />
             </SelectTrigger>

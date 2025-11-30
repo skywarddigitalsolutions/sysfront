@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils"
 import { StatusPill } from "@/components/status-pill"
 import { useActiveEvents } from "@/features/events/hooks/useEvents"
 import { useKitchenOrders, useKitchenOrderMutations } from "@/features/kitchen/hooks/useKitchen"
-import { useAvailableProducts } from "@/features/products/hooks/useProducts"
+import { useEventProducts } from "@/features/inventory/hooks/useInventory"
 import { Order } from "@/features/orders/types"
 import { formatQty } from "@/helpers/qty"
 
@@ -240,7 +240,7 @@ export default function CocinaDashboard() {
 
   const { data: events } = useActiveEvents()
   const { data: orders, isLoading: isLoadingOrders } = useKitchenOrders(selectedEventId)
-  const { data: products } = useAvailableProducts(selectedEventId)
+  const { data: products } = useEventProducts(selectedEventId)
   const { startPreparation, completePreparation } = useKitchenOrderMutations(selectedEventId)
 
   useEffect(() => {
@@ -260,6 +260,8 @@ export default function CocinaDashboard() {
   const pendingOrders = orders?.filter((o) => o.status.name === "PENDING") || []
   const inProgressOrders = orders?.filter((o) => o.status.name === "IN_PROGRESS") || []
   const completedOrders = orders?.filter((o) => o.status.name === "COMPLETED") || []
+
+
 
   const lowStockProducts = products?.filter((p) => p.currentQty > 0 && p.currentQty <= 5) || []
   const outOfStockProducts = products?.filter((p) => p.currentQty === 0) || []

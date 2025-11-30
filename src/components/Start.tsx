@@ -95,7 +95,7 @@ export default function Start() {
               <div className="space-y-4">
                 <div>
                   <p className="text-white/60 text-sm mb-1">Inversión Total</p>
-                  <p className="text-3xl font-bold text-white">${statistics?.summary?.totalInvestment?.toFixed(2) || "0.00"}</p>
+                  <p className="text-3xl font-bold text-white">${statistics?.summary?.totalInvestment?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0.00"}</p>
                 </div>
 
                 <div className="h-px bg-white/20" />
@@ -151,7 +151,7 @@ export default function Start() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${statistics?.summary?.netRevenue >= 0 ? "text-green-400" : "text-green-400"}`}>
-                  ${statistics?.summary?.totalRevenue.toFixed(0)}
+                  ${statistics?.summary?.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
                 <p className="text-xs text-white/60 mt-1">Ganancia neta</p>
               </CardContent>
@@ -163,7 +163,7 @@ export default function Start() {
                 <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-500">${statistics?.summary?.salesByMethod?.EFECTIVO.net || "0"}</div>
+                <div className="text-2xl font-bold text-blue-500">${statistics?.summary?.salesByMethod?.EFECTIVO.net.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
                 <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
@@ -174,14 +174,14 @@ export default function Start() {
                 <DollarSign className="h-5 w-5 text-white" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">${statistics?.summary?.salesByMethod?.TRANSFERENCIA.net || "0"}</div>
+                <div className="text-2xl font-bold text-white">${statistics?.summary?.salesByMethod?.TRANSFERENCIA.net.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
                 <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Totales</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Total de pedidos</CardTitle>
                 <ShoppingCart className="h-5 w-5 text-orange-400" />
               </CardHeader>
               <CardContent>
