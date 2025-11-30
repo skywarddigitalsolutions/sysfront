@@ -2,23 +2,22 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useAuth } from "@/Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, Truck, ShoppingBag, BarChart3, Home, CreditCard, TrendingUp, User } from "lucide-react"
+import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, BarChart3, Home, CreditCard, TrendingUp, User, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CountdownTimer } from "./CountDownTimer"
 import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
-    { name: "Inicio", icon: Home, label: "Inicio", href: "/" },
-    { name: "Estadísticas",icon: BarChart3, label: "Estadísticas", href: "/statistics" },
-    { name: "Caja",icon: CreditCard, label: "Caja", href: "/cashier" },
-    { name: "Cocina",icon: ChefHat, label: "Cocina", href: "/kitchen" },
-    { name: "Inventario",icon: Package, label: "Inventario", href: "/inventory" },
-    { name: "Ventas",icon: TrendingUp, label: "Ventas", href: "/sales" },
-    { name: "Eventos",icon: Calendar, label: "Eventos", href: "/create-event" },
-    { name: "Usuarios",icon: User, label: "Usuarios", href: "/create-users" },
+  { name: "Inicio", icon: Home, label: "Inicio", href: "/" },
+  { name: "Estadísticas", icon: BarChart3, label: "Estadísticas", href: "/statistics" },
+  { name: "Caja", icon: CreditCard, label: "Caja", href: "/cashier" },
+  { name: "Cocina", icon: ChefHat, label: "Cocina", href: "/kitchen" },
+  { name: "Inventario", icon: Package, label: "Inventario", href: "/inventory" },
+  { name: "Ventas", icon: TrendingUp, label: "Ventas", href: "/sales" },
+  { name: "Eventos", icon: Calendar, label: "Eventos", href: "/create-event" }
 ]
 
 export default function Start() {
@@ -37,32 +36,7 @@ export default function Start() {
 
   const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
-  const chartData = useMemo(() => {
-    if (!statistics || !statistics.topSellingItems) return []
-
-    let data = Object.entries(statistics.topSellingItems).map(([name, quantity]) => ({
-      name,
-      quantity,
-      revenue: quantity * 10,
-    }))
-
-    if (itemFilter) {
-      data = data.filter((item) => item.name.toLowerCase().includes(itemFilter.toLowerCase()))
-    }
-
-    data.sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name)
-      if (sortBy === "quantity") return b.quantity - a.quantity
-      if (sortBy === "revenue") return b.revenue - a.revenue
-      return 0
-    })
-
-    return data.slice(0, 10)
-  }, [statistics, itemFilter, sortBy])
-
-  const profit = statistics ? statistics.totalRevenue - statistics.totalInvestment : 0
-  const profitPercentage =
-    statistics && statistics.totalInvestment > 0 ? ((profit / statistics.totalInvestment) * 100).toFixed(2) : "0.00"
+  const profit = statistics ? statistics.summary.totalRevenue - statistics.summary.totalInvestment : 0
 
   const selectedEvent = events?.find((e) => e.id === selectedEventId)
   const nextEvent = events?.[0] || { name: "Próximo Evento", startDate: "2025-12-31T18:00:00", endDate: "2025-12-31T23:00:00", id: "", isActive: false, isClosed: false, createdAt: "" }
@@ -74,8 +48,6 @@ export default function Start() {
   }, [user])
 
   if (isLoading || !user) return null
-
-  console.log('profit --> ', profitPercentage)
 
   return (
     <main className="flex flex-col min-h-screen bg-black">
@@ -92,7 +64,7 @@ export default function Start() {
                 </div>
                 <div>
                   <p className="text-white/70 text-sm font-medium">Próximo Evento</p>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-white">{nextEvent.name}</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white">{nextEvent.name.charAt(0).toUpperCase() + nextEvent.name.slice(1)}</h2>
                 </div>
               </div>
 
@@ -127,7 +99,7 @@ export default function Start() {
               <div className="space-y-4">
                 <div>
                   <p className="text-white/60 text-sm mb-1">Inversión Total</p>
-                  <p className="text-3xl font-bold text-white">${statistics?.totalInvestment?.toFixed(2) || "0.00"}</p>
+                  <p className="text-3xl font-bold text-white">${statistics?.summary?.totalInvestment?.toFixed(2) || "0.00"}</p>
                 </div>
 
                 <div className="h-px bg-white/20" />
@@ -135,13 +107,11 @@ export default function Start() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-white/60 text-xs mb-1">Insumos Agregados</p>
-                    <p className="text-xl font-bold text-blue-100"> 45</p>
+                    <p className="text-xl font-bold text-blue-100"> {statistics?.summary?.totalSupplies || 0}</p>
                   </div>
                   <div>
                     <p className="text-white/60 text-xs mb-1">Productos armados </p>
-                    <p className={`text-xl font-bold text-blue-100`}>
-                      20
-                    </p>
+                    <p className={`text-xl font-bold text-blue-100`}> {statistics?.summary?.totalProducts || 0} </p>
                   </div>
                 </div>
               </div>
@@ -152,9 +122,6 @@ export default function Start() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Resumen de Eventos</h1>
-            <p className="text-white/60 mt-1">
-              Bienvenido, <span className="font-medium text-white">{user.username}</span> · {user.role}
-            </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -181,53 +148,49 @@ export default function Start() {
 
         {statistics && (
           <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-3 lg:grid-cols-4">
-            <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Inversión</CardTitle>
-                <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-blue-500">${statistics?.totalInvestment?.toFixed(2) || "0.00"}</div>
-                <p className="text-xs text-white/60 mt-1">Capital invertido</p>
-              </CardContent>
-            </Card>
-
             <Card className="backdrop-blur-xl bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-500/50 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-white/80">Ganancia</CardTitle>
                 <ArrowUpRight className="h-5 w-5 text-green-400" />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${profit >= 0 ? "text-green-400" : "text-green-400"}`}>
-                  ${Math.abs(profit).toFixed(2)}
+                <div className={`text-2xl font-bold ${statistics?.summary?.netRevenue >= 0 ? "text-green-400" : "text-green-400"}`}>
+                  ${statistics?.summary?.totalRevenue.toFixed(0)}
                 </div>
                 <p className="text-xs text-white/60 mt-1">Ganancia neta</p>
               </CardContent>
             </Card>
 
-            <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
+            <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Sobrante</CardTitle>
-                <Package className="h-5 w-5 text-orange-400" />
+                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Efectivo</CardTitle>
+                <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-400">12 items</div>
-                <p className="text-xs text-white/60 mt-1">Productos sin vender</p>
+                <div className="text-2xl font-bold text-blue-500">${statistics?.summary?.salesByMethod?.EFECTIVO.net || "0"}</div>
+                <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
 
-            <Card className="backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-white/40 transition-all shadow-xl">
+            <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-black/50 hover:border-black/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ver Todos</CardTitle>
-                <ArrowRight className="h-5 w-5 text-white/60" />
+                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Transferencia</CardTitle>
+                <DollarSign className="h-5 w-5 text-white" />
               </CardHeader>
               <CardContent>
-                <Button
-                  onClick={() => router.push("/statistics")}
-                  className="w-full mt-2 bg-[#1E2C6D] hover:bg-[#1E2C6D]/80 text-white font-medium"
-                >
-                  Estadísticas Completas
-                </Button>
+                <div className="text-2xl font-bold text-white">${statistics?.summary?.salesByMethod?.TRANSFERENCIA.net || "0"}</div>
+                <p className="text-xs text-white/60 mt-1">Finalizadas</p>
+              </CardContent>
+            </Card>
+
+            <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Totales</CardTitle>
+                <ShoppingCart className="h-5 w-5 text-orange-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-400">{statistics?.summary?.totalOrders}</div>
+                <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
           </div>

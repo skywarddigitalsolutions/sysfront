@@ -254,7 +254,7 @@ function InventoryContent() {
   const addProductToLoad = () => {
     setSelectedProductsToLoad([
       ...selectedProductsToLoad,
-      { productId: "", initialQty: 0, minQty: 0, salePrice: 0 }
+      { productId: "", initialQty: 0, minQty: 0, salePrice: 0, cost: 0 }
     ])
   }
 
@@ -822,7 +822,7 @@ function InventoryContent() {
 
                   {recipeSupplies.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      No hay insumos asignados. Haz clic en "Agregar Insumo" para empezar.
+                      No hay insumos asignados. Haz clic en &quot;Agregar Insumo&quot; para empezar.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -898,6 +898,105 @@ function InventoryContent() {
                 Selecciona los productos y configura su inventario inicial
               </p>
               <Button type="button" variant="outline" size="sm" onClick={addProductToLoad}>
+                <Plus className="h-4 w-4 mr-1" />
+                Agregar Producto
+              </Button>
+            </div>
+
+            {selectedProductsToLoad.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No hay productos seleccionados
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedProductsToLoad.map((item, index) => {
+                  const product = allProducts.find(p => p.id === item.productId)
+                  const hasRecipe = product?.supplies && product.supplies.length > 0
+
+                  return (
+                    <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded">
+                      <div className="col-span-3">
+                        <Label className="text-xs">Producto</Label>
+                        <Select
+                          value={item.productId}
+                          onValueChange={(value) => updateProductToLoad(index, 'productId', value)}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Seleccionar..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {allProducts.map((product) => (
+                              <SelectItem key={product.id} value={product.id}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Stock Inicial</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={item.initialQty}
+                          onChange={(e) => updateProductToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Stock Mínimo</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          value={item.minQty}
+                          onChange={(e) => updateProductToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">
+                          {hasRecipe ? "Costo (Auto)" : "Costo Unitario"}
+                        </Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.cost}
+                          onChange={(e) => updateProductToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
+                          className="h-9"
+                          disabled={!!hasRecipe}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Label className="text-xs">Precio Venta</Label>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.salePrice}
+                          onChange={(e) => updateProductToLoad(index, 'salePrice', parseFloat(e.target.value) || 0)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeProductToLoad(index)}
+                          className="h-9 w-9 p-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 gap-2">
+              <Button variant="outline" onClick={() => setShowLoadProductsDialog(false)}>
                 Cancelar
               </Button>
               <Button

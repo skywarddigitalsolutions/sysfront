@@ -14,6 +14,8 @@ export interface EventStatistics {
     totalInvestment: number;
     topSellingItems: { [key: string]: number };
     totalOrders: number;
+    totalSupplies: number;
+    totalProducts: number;
 }
 
 export interface EventUser {
