@@ -181,10 +181,10 @@ function OrderCard({
 
   return (
     <Card
-      className={cn("border-l-4 transition-all hover:shadow-lg cursor-pointer", config.bgColor, config.borderColor)}
+      className={cn("border-l-4 transition-all hover:shadow-lg cursor-pointer h-full flex flex-col", config.bgColor, config.borderColor)}
       onClick={onClick}
     >
-      <CardContent className="p-6">
+      <CardContent className="p-6 flex-1 flex flex-col">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h3 className="text-lg font-light text-white mb-1">Pedido #{order.orderNumber}</h3>
@@ -209,7 +209,10 @@ function OrderCard({
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-4 border-t">
+        {/* Spacer para empujar el footer hacia abajo */}
+        <div className="flex-grow"></div>
+
+        <div className="flex items-center justify-between pt-4 border-t mt-auto">
           <div className="text-lg font-bold text-white">
             Total: <span className="text-white">${Number(order.totalAmount).toFixed(2)}</span>
           </div>
