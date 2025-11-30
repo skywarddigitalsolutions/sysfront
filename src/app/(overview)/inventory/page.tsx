@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,6 +33,9 @@ export default function InventoryPage() {
 }
 
 function InventoryContent() {
+  const searchParams = useSearchParams()
+  const eventIdFromUrl = searchParams.get('eventId')
+
   const [selectedEventId, setSelectedEventId] = useState<string>("")
   const [activeTab, setActiveTab] = useState("event-products")
 
@@ -99,6 +103,15 @@ function InventoryContent() {
   // ... (rest of the file until addSupplyToLoad)
 
 
+  // Set event from URL if provided
+  useEffect(() => {
+    if (eventIdFromUrl && events.length > 0) {
+      const eventExists = events.find(e => e.id === eventIdFromUrl)
+      if (eventExists) {
+        setSelectedEventId(eventIdFromUrl)
+      }
+    }
+  }, [eventIdFromUrl, events])
 
   // Reset pagination when changing tabs
   useEffect(() => {

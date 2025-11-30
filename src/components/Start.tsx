@@ -11,13 +11,13 @@ import { CountdownTimer } from "./CountDownTimer"
 import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
-  { name: "Inicio", icon: Home, label: "Inicio", href: "/" },
   { name: "Estadísticas", icon: BarChart3, label: "Estadísticas", href: "/statistics" },
   { name: "Caja", icon: CreditCard, label: "Caja", href: "/cashier" },
   { name: "Cocina", icon: ChefHat, label: "Cocina", href: "/kitchen" },
   { name: "Inventario", icon: Package, label: "Inventario", href: "/inventory" },
   { name: "Ventas", icon: TrendingUp, label: "Ventas", href: "/sales" },
-  { name: "Eventos", icon: Calendar, label: "Eventos", href: "/create-event" }
+  { name: "Eventos", icon: Calendar, label: "Eventos", href: "/create-event" },
+  { name: "Usuarios", icon: User, label: "Usuarios", href: "/create-users" },
 ]
 
 export default function Start() {
@@ -73,13 +73,15 @@ export default function Start() {
 
                 <div className="flex flex-wrap gap-3 mt-2">
                   <Button
-                    onClick={() => router.push(`/events?selected=${selectedEventId}`)}
+                    onClick={() => router.push(`/inventory?eventId=${nextEvent.id}`)}
                     className="bg-white text-[#1E2C6D] hover:bg-white/90 font-semibold shadow-lg group"
+                    disabled={!nextEvent.id}
                   >
                     Ver Detalles del Evento
                     <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
                   </Button>
                   <Button
+                    onClick={() => router.push(`/create-event`)}
                     variant="outline"
                     className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm bg-transparent"
                   >

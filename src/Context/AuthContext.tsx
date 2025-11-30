@@ -4,6 +4,7 @@ import React, { createContext, useState, useContext, useEffect, useRef } from 'r
 import { User } from '@/lib/types'
 import { authService } from '@/services/auth/authService'
 import { canAccessRoute } from '@/lib/route-protection'
+import Image from 'next/image'
 
 interface AuthContextType {
   user: User | null
@@ -169,7 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Mostrar loading mientras se valida la sesión
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center">
+        <Image src="/logo.png" alt="Loading" width={100} height={100} className='mb-2' />
         <div className="text-white text-xl">Cargando...</div>
       </div>
     )

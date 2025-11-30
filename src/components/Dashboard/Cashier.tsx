@@ -118,7 +118,7 @@ export default function CajaDashboard() {
                 <div className="text-xl font-bold text-green-400">${totalRevenue.toFixed(2)}</div>
               </div>
               <div className="flex-1 sm:flex-none p-3 rounded-lg bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-white/20">
-                <div className="text-xs text-white/60">Ticket</div>
+                <div className="text-xs text-white/60">Ticket Promedio</div>
                 <div className="text-xl font-bold text-orange-400">
                   ${totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00"}
                 </div>
@@ -136,7 +136,7 @@ export default function CajaDashboard() {
                 <div className="relative flex-1 bg-black">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                   <Input
-                    placeholder="Buscar por cliente..."
+                    placeholder="Buscar..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-10 h-11"
