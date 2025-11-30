@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Calendar, Plus, Copy, Search, Edit, X, Check } from "lucide-react"
+import { Calendar, Plus, Copy, Edit, X, Check, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,12 +15,11 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { fetchEvents, fetchAllProducts, createEvent, updateEvent, duplicateEvent } from "@/lib/api/api"
-import type { Event, EventFormData, EventUser, EventPromotion } from "@/lib/types"
+import { useQueryClient } from "@tanstack/react-query"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { useEvents, useEventMutations } from "@/features/events/hooks/useEvents"
+import type { Event, CreateEventDto } from "@/features/events/types"
 
 export default function EventosDashboard() {
   return (
@@ -39,56 +37,25 @@ function EventosContent() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
 
   // Form state
-  const [formData, setFormData] = useState<EventFormData>({
+  const [formData, setFormData] = useState<CreateEventDto>({
     name: "",
-    date: "",
-    location: "",
-    status: "upcoming",
-    description: "",
-    availableProducts: [],
-    assignedUsers: [],
-    promotions: [],
+    startDate: "",
+    endDate: "",
   })
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
-  })
+  const { data: events = [] } = useEvents()
 
-  const { data: allProducts = [] } = useQuery({
-    queryKey: ["allProducts"],
-    queryFn: fetchAllProducts,
-  })
-
-  const createMutation = useMutation({
-    mutationFn: createEvent,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] })
-      setIsCreateDialogOpen(false)
-      resetForm()
-    },
-  })
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<EventFormData> }) => updateEvent(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] })
-      setEditingEvent(null)
-      resetForm()
-    },
-  })
-
-  const duplicateMutation = useMutation({
-    mutationFn: duplicateEvent,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["events"] })
-    },
-  })
+  const { createEvent, updateEvent, deleteEvent } = useEventMutations()
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       const matchesSearch = event.name.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesStatus = statusFilter === "all" || event.status === statusFilter
+
+      let eventStatus = "upcoming"
+      if (event.isClosed) eventStatus = "completed"
+      else if (event.isActive) eventStatus = "active"
+
+      const matchesStatus = statusFilter === "all" || eventStatus === statusFilter
       return matchesSearch && matchesStatus
     })
   }, [events, searchTerm, statusFilter])
@@ -96,22 +63,33 @@ function EventosContent() {
   const resetForm = () => {
     setFormData({
       name: "",
-      date: "",
-      location: "",
-      status: "upcoming",
-      description: "",
-      availableProducts: [],
-      assignedUsers: [],
-      promotions: [],
+      startDate: "",
+      endDate: "",
     })
     setEditingEvent(null)
   }
 
-  const handleSubmit = () => {
-    if (editingEvent) {
-      updateMutation.mutate({ id: editingEvent.id, data: formData })
-    } else {
-      createMutation.mutate(formData)
+  const handleSubmit = async () => {
+    try {
+      if (editingEvent) {
+        // Update logic
+        updateEvent.mutate({ id: editingEvent.id, data: formData }, {
+          onSuccess: () => {
+            setIsCreateDialogOpen(false)
+            resetForm()
+          }
+        })
+      } else {
+        // Create logic
+        createEvent.mutate(formData, {
+          onSuccess: () => {
+            setIsCreateDialogOpen(false)
+            resetForm()
+          }
+        })
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error)
     }
   }
 
@@ -119,116 +97,31 @@ function EventosContent() {
     setEditingEvent(event)
     setFormData({
       name: event.name,
-      date: event.date || "",
-      location: event.location || "",
-      status: event.status || "upcoming",
-      description: "",
-      availableProducts: [],
-      assignedUsers: [],
-      promotions: [],
+      startDate: event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : "",
+      endDate: event.endDate ? new Date(event.endDate).toISOString().split('T')[0] : "",
     })
     setIsCreateDialogOpen(true)
   }
 
   const handleDuplicate = (eventId: string) => {
-    duplicateMutation.mutate(eventId)
-  }
-
-  const toggleProduct = (productId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      availableProducts: prev.availableProducts?.includes(productId)
-        ? prev.availableProducts.filter((id) => id !== productId)
-        : [...(prev.availableProducts || []), productId],
-    }))
-  }
-
-  const addUser = () => {
-    setFormData((prev) => ({
-      ...prev,
-      assignedUsers: [
-        ...(prev.assignedUsers || []),
-        {
-          id: Date.now().toString(),
-          name: "",
-          role: "cashier",
-        },
-      ],
-    }))
-  }
-
-  const updateUser = (index: number, field: keyof EventUser, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      assignedUsers: prev.assignedUsers?.map((user, i) => (i === index ? { ...user, [field]: value } : user)),
-    }))
-  }
-
-  const removeUser = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      assignedUsers: prev.assignedUsers?.filter((_, i) => i !== index),
-    }))
-  }
-
-  const addPromotion = () => {
-    setFormData((prev) => ({
-      ...prev,
-      promotions: [
-        ...(prev.promotions || []),
-        {
-          id: Date.now().toString(),
-          eventId: editingEvent?.id || "",
-          name: "",
-          description: "",
-          discountType: "percentage",
-          discountValue: 0,
-          validFrom: "",
-          validTo: "",
-          isActive: true,
-        },
-      ],
-    }))
-  }
-
-  const updatePromotion = (index: number, field: keyof EventPromotion, value: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      promotions: prev.promotions?.map((promo, i) => (i === index ? { ...promo, [field]: value } : promo)),
-    }))
-  }
-
-  const removePromotion = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      promotions: prev.promotions?.filter((_, i) => i !== index),
-    }))
-  }
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case "active":
-        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/50"
-      case "upcoming":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/50"
-      case "completed":
-        return "bg-gray-500/20 text-gray-400 border-gray-500/50"
-      default:
-        return "bg-white/10 text-white/70 border-white/20"
+    const eventToDuplicate = events.find(e => e.id === eventId)
+    if (eventToDuplicate) {
+      // Logic to pre-fill form with duplicated data could go here
+      // For now just console log or implement if backend supports duplicate endpoint
+      console.log("Duplicate feature pending backend support")
     }
   }
 
-  const getStatusLabel = (status?: string) => {
-    switch (status) {
-      case "active":
-        return "Activo"
-      case "upcoming":
-        return "Próximo"
-      case "completed":
-        return "Completado"
-      default:
-        return "Desconocido"
-    }
+  const getStatusColor = (event: Event) => {
+    if (event.isClosed) return "bg-gray-500/20 text-gray-400 border-gray-500/50"
+    if (event.isActive) return "bg-emerald-500/20 text-emerald-400 border-emerald-500/50"
+    return "bg-blue-500/20 text-blue-400 border-blue-500/50"
+  }
+
+  const getStatusLabel = (event: Event) => {
+    if (event.isClosed) return "Completado"
+    if (event.isActive) return "Activo"
+    return "Próximo"
   }
 
   return (
@@ -238,7 +131,7 @@ function EventosContent() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Gestión de Eventos</h1>
-            <p className="text-white/60 mt-1">Administra eventos, productos, usuarios y promociones</p>
+            <p className="text-white/60 mt-1">Administra eventos y su inventario inicial</p>
           </div>
           <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
             <DialogTrigger asChild>
@@ -255,19 +148,14 @@ function EventosContent() {
                 <DialogDescription className="text-white/60">
                   {editingEvent
                     ? "Modifica los detalles del evento"
-                    : "Configura un nuevo evento con productos, usuarios y promociones"}
+                    : "Configura un nuevo evento"}
                 </DialogDescription>
               </DialogHeader>
 
-              <Tabs defaultValue="general" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 bg-white/5">
-                  <TabsTrigger value="general">General</TabsTrigger>
-                  <TabsTrigger value="products">Productos</TabsTrigger>
-                  <TabsTrigger value="users">Usuarios</TabsTrigger>
-                  <TabsTrigger value="promotions">Promociones</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="general" className="space-y-4 mt-4">
+              <div className="space-y-6 py-4">
+                {/* General Info */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Información General</h3>
                   <div className="space-y-2">
                     <Label className="text-white">Nombre del Evento</Label>
                     <Input
@@ -280,240 +168,26 @@ function EventosContent() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-white">Fecha</Label>
+                      <Label className="text-white">Fecha Inicio</Label>
                       <Input
                         type="date"
-                        value={formData.date}
-                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        value={formData.startDate}
+                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                         className="bg-white/5 border-white/20 text-white"
                       />
                     </div>
-
                     <div className="space-y-2">
-                      <Label className="text-white">Estado</Label>
-                      <Select
-                        value={formData.status}
-                        onValueChange={(value: any) => setFormData({ ...formData, status: value })}
-                      >
-                        <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="upcoming">Próximo</SelectItem>
-                          <SelectItem value="active">Activo</SelectItem>
-                          <SelectItem value="completed">Completado</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label className="text-white">Fecha Fin</Label>
+                      <Input
+                        type="date"
+                        value={formData.endDate}
+                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        className="bg-white/5 border-white/20 text-white"
+                      />
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-white">Ubicación</Label>
-                    <Input
-                      placeholder="Ej: Salón de eventos Palermo"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className="bg-white/5 border-white/20 text-white"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-white">Descripción</Label>
-                    <Textarea
-                      placeholder="Describe el evento, expectativas, notas especiales..."
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="bg-white/5 border-white/20 text-white min-h-[100px]"
-                    />
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="products" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label className="text-white">Productos Disponibles</Label>
-                    <p className="text-sm text-white/60">
-                      Selecciona los productos que estarán disponibles en este evento
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto p-2 bg-white/5 rounded-md border border-white/10">
-                    {allProducts.map((product) => (
-                      <div
-                        key={`product-select-${product.id}`}
-                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-white/5"
-                      >
-
-                        <Checkbox
-                          id={`product-${product.id}`}
-                          checked={formData.availableProducts?.includes(product.id)}
-                          onCheckedChange={() => toggleProduct(product.id)}
-                        />
-                        <label htmlFor={`product-${product.id}`} className="text-sm text-white cursor-pointer flex-1">
-                          {product.name}
-                          <span className="text-white/60 ml-2">(${product.price})</span>
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="users" className="space-y-4 mt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-white">Usuarios Asignados</Label>
-                      <p className="text-sm text-white/60">Asigna personal para este evento</p>
-                    </div>
-                    <Button
-                      onClick={addUser}
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 text-white bg-transparent"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Agregar
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {formData.assignedUsers?.map((user, index) => (
-                      <div
-                        key={`user-${user.id}`}
-                        className="flex gap-2 p-3 bg-white/5 rounded-md border border-white/10"
-                      >
-                        <div className="flex-1 grid grid-cols-2 gap-2">
-                          <Input
-                            placeholder="Nombre"
-                            value={user.name}
-                            onChange={(e) => updateUser(index, "name", e.target.value)}
-                            className="bg-white/5 border-white/20 text-white"
-                          />
-                          <Select value={user.role} onValueChange={(value) => updateUser(index, "role", value)}>
-                            <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                              <SelectItem value="cashier">Cajero</SelectItem>
-                              <SelectItem value="kitchen">Cocina</SelectItem>
-                              <SelectItem value="delivery">Entrega</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          onClick={() => removeUser(index)}
-                          size="icon"
-                          variant="ghost"
-                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    {(!formData.assignedUsers || formData.assignedUsers.length === 0) && (
-                      <p className="text-center text-white/40 py-8">No hay usuarios asignados</p>
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="promotions" className="space-y-4 mt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label className="text-white">Promociones</Label>
-                      <p className="text-sm text-white/60">Crea descuentos y ofertas para el evento</p>
-                    </div>
-                    <Button
-                      onClick={addPromotion}
-                      size="sm"
-                      variant="outline"
-                      className="border-white/20 text-white bg-transparent"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Agregar
-                    </Button>
-                  </div>
-
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {formData.promotions?.map((promo, index) => (
-                      <div
-                        key={`promo-${promo.id}`}
-                        className="p-3 bg-white/5 rounded-md border border-white/10 space-y-3"
-                      >
-                        <div className="flex items-start gap-2">
-                          <Input
-                            placeholder="Nombre de la promoción"
-                            value={promo.name}
-                            onChange={(e) => updatePromotion(index, "name", e.target.value)}
-                            className="bg-white/5 border-white/20 text-white flex-1"
-                          />
-                          <Button
-                            onClick={() => removePromotion(index)}
-                            size="icon"
-                            variant="ghost"
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        <Textarea
-                          placeholder="Descripción"
-                          value={promo.description}
-                          onChange={(e) => updatePromotion(index, "description", e.target.value)}
-                          className="bg-white/5 border-white/20 text-white"
-                        />
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <Select
-                            value={promo.discountType}
-                            onValueChange={(value: "percentage" | "fixed") =>
-                              updatePromotion(index, "discountType", value)
-                            }
-                          >
-                            <SelectTrigger className="bg-white/5 border-white/20 text-white">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="percentage">Porcentaje</SelectItem>
-                              <SelectItem value="fixed">Monto Fijo</SelectItem>
-                            </SelectContent>
-                          </Select>
-
-                          <Input
-                            type="number"
-                            placeholder="Valor"
-                            value={promo.discountValue}
-                            onChange={(e) => updatePromotion(index, "discountValue", Number.parseFloat(e.target.value))}
-                            className="bg-white/5 border-white/20 text-white"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="space-y-1">
-                            <Label className="text-xs text-white/60">Válido desde</Label>
-                            <Input
-                              type="date"
-                              value={promo.validFrom}
-                              onChange={(e) => updatePromotion(index, "validFrom", e.target.value)}
-                              className="bg-white/5 border-white/20 text-white"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <Label className="text-xs text-white/60">Válido hasta</Label>
-                            <Input
-                              type="date"
-                              value={promo.validTo}
-                              onChange={(e) => updatePromotion(index, "validTo", e.target.value)}
-                              className="bg-white/5 border-white/20 text-white"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {(!formData.promotions || formData.promotions.length === 0) && (
-                      <p className="text-center text-white/40 py-8">No hay promociones creadas</p>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
+                </div>
+              </div>
 
               <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
                 <Button
@@ -528,11 +202,25 @@ function EventosContent() {
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={!formData.name || !formData.date}
+                  disabled={
+                    !formData.name ||
+                    !formData.startDate ||
+                    !formData.endDate ||
+                    createEvent.isPending
+                  }
                   className="bg-gradient-blue text-white"
                 >
-                  <Check className="h-4 w-4" />
-                  {editingEvent ? "Guardar Cambios" : "Crear Evento"}
+                  {createEvent.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      Procesando...
+                    </span>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4" />
+                      {editingEvent ? "Guardar Cambios" : "Crear Evento"}
+                    </>
+                  )}
                 </Button>
               </div>
             </DialogContent>
@@ -576,16 +264,14 @@ function EventosContent() {
                     <CardTitle className="text-white text-lg truncate">{event.name}</CardTitle>
                     <CardDescription className="text-white/60 flex items-center gap-2 mt-1">
                       <Calendar className="h-3 w-3" />
-                      {event.date ? new Date(event.date).toLocaleDateString("es-AR") : "Sin fecha"}
+                      {event.startDate ? new Date(event.startDate).toLocaleDateString("es-AR") : "Sin fecha"}
                     </CardDescription>
                   </div>
-                  <Badge className={getStatusColor(event.status)}>{getStatusLabel(event.status)}</Badge>
+                  <Badge className={getStatusColor(event)}>{getStatusLabel(event)}</Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {event.location && <p className="text-sm text-white/70 line-clamp-2">{event.location}</p>}
-
                   <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"

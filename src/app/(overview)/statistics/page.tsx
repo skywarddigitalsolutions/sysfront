@@ -1,8 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Event, EventStatistics } from "@/lib/types"
-import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuth } from "../../../Context/AuthContext"
@@ -21,6 +19,7 @@ import {
   ShoppingBagIcon,
 } from "lucide-react"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 export default function statistics() {
   const { user } = useAuth()
@@ -32,25 +31,18 @@ export default function statistics() {
   >("quantityDesc")
   const [filterSearch, setFilterSearch] = useState<string>("")
 
-  const { data: events } = useQuery<Event[]>({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
-  })
+  const { data: events } = useEvents()
 
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) setSelectedEventId(events[0].id)
   }, [events, selectedEventId])
 
-  const { data: statistics } = useQuery<EventStatistics>({
-    queryKey: ["eventStatistics", selectedEventId],
-    queryFn: () => fetchEventStatistics(selectedEventId),
-    enabled: !!selectedEventId,
-  })
+  const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
-  const filteredAndSortedItems = statistics
+  const filteredAndSortedItems = (statistics && statistics.topSellingItems)
     ? Object.entries(statistics.topSellingItems)
       .filter(([name]) => name.toLowerCase().includes(filterSearch.toLowerCase()))
-      .map(([name, quantity]) => ({ name, quantity }))
+      .map(([name, quantity]) => ({ name, quantity: quantity as number }))
       .sort((a, b) => {
         switch (sortBy) {
           case "quantityDesc":
@@ -74,7 +66,9 @@ export default function statistics() {
   const profitPercentage =
     statistics && statistics.totalInvestment > 0 ? ((profit / statistics.totalInvestment) * 100).toFixed(2) : "0.00"
 
-  const itemsRemaining = statistics ? Object.values(statistics.topSellingItems).reduce((a, b) => a + b, 0) : 0
+  const itemsRemaining = (statistics && statistics.topSellingItems)
+    ? Object.values(statistics.topSellingItems).reduce((a, b) => (a as number) + (b as number), 0)
+    : 0
 
   const stockAlerts = statistics
     ? [
@@ -166,7 +160,7 @@ export default function statistics() {
                   <ArrowDownLeftIcon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.totalInvestment.toFixed(0)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.totalInvestment?.toFixed(0)}</div>
                   <p className="text-xs text-muted-foreground mt-1">Costo de productos</p>
                 </CardContent>
               </Card>
@@ -178,7 +172,7 @@ export default function statistics() {
                   <DollarSign className="h-5 w-5 text-orange-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.totalRevenue.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.totalRevenue?.toFixed(2) || "0.00"}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Totales
                   </p>
@@ -192,7 +186,7 @@ export default function statistics() {
                   <ShoppingBagIcon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.averageOrderValue.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.averageOrderValue?.toFixed(2) || "0.00"}</div>
                   <p className="text-xs text-muted-foreground mt-1">Por pedido</p>
                 </CardContent>
               </Card>
@@ -357,7 +351,7 @@ export default function statistics() {
                   <ArrowDownLeftIcon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.totalInvestment.toFixed(0)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.totalInvestment?.toFixed(0) || "0"}</div>
                   <p className="text-xs text-muted-foreground mt-1">Costo de productos</p>
                 </CardContent>
               </Card>
@@ -369,7 +363,7 @@ export default function statistics() {
                   <DollarSign className="h-5 w-5 text-orange-400" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.totalRevenue.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.totalRevenue?.toFixed(2) || "0.00"}</div>
                   <p className="text-xs text-muted-foreground mt-1">
                     Totales
                   </p>
@@ -383,7 +377,7 @@ export default function statistics() {
                   <ShoppingBagIcon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics.averageOrderValue.toFixed(2)}</div>
+                  <div className="text-3xl font-bold text-foreground">${statistics?.averageOrderValue?.toFixed(2) || "0.00"}</div>
                   <p className="text-xs text-muted-foreground mt-1">Por pedido</p>
                 </CardContent>
               </Card>

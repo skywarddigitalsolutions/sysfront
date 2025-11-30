@@ -21,6 +21,7 @@ export const ROUTE_PERMISSIONS: RoutePermissions = {
   '/inventory': ['ADMIN'],
   '/sales': ['ADMIN'],
   '/create-event': ['ADMIN'],
+  '/create-users': ['ADMIN'],
 }
 
 /**

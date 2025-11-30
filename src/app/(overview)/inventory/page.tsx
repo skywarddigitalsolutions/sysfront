@@ -7,874 +7,1014 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Package,
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  AlertTriangle,
-  TrendingDown,
-  ShoppingCart,
-  DollarSign,
-  Layers,
-  Box,
-} from "lucide-react"
-import {
-  fetchInsumos,
-  createInsumo,
-  updateInsumo,
-  deleteInsumo,
-  fetchAllProducts,
-  createProduct,
-  updateProduct,
-  deleteProduct,
-} from "@/lib/api/api"
-import type { Insumo, Product, InsumoIngredient } from "@/lib/types"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Package, Plus, Edit, Trash2, AlertTriangle, Box, Layers, ChevronLeft, ChevronRight, X, Upload } from "lucide-react"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog"
 
-export default function InventarioDashboard() {
+import { useEvents } from "@/features/events/hooks/useEvents"
+import { useEventProducts, useEventSupplies, useInventoryMutations } from "@/features/inventory/hooks/useInventory"
+import { useSupplies, useSupplyMutations } from "@/features/supplies/hooks/useSupplies"
+import { useProducts, useProductMutations } from "@/features/products/hooks/useProducts"
+import type { Supply, CreateSupplyDto, UpdateSupplyDto } from "@/features/supplies/types"
+import type { Product, CreateProductDto, UpdateProductDto, AssignSuppliesDto } from "@/features/products/types"
+import type { LoadProductsDto, LoadSuppliesDto } from "@/features/inventory/types"
+
+export default function InventoryPage() {
   return (
-    <ProtectedRoute requiredRoles={['ADMIN', 'CAJA', 'COCINA']}>
-      <InventarioContent />
+    <ProtectedRoute requiredRoles={['ADMIN']}>
+      <InventoryContent />
     </ProtectedRoute>
   )
 }
 
-function InventarioContent() {
-  const [insumos, setInsumos] = useState<Insumo[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [searchInsumos, setSearchInsumos] = useState("")
-  const [searchProducts, setSearchProducts] = useState("")
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [createType, setCreateType] = useState<"insumo" | "producto" | null>(null)
-  const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null)
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+function InventoryContent() {
+  const [selectedEventId, setSelectedEventId] = useState<string>("")
+  const [activeTab, setActiveTab] = useState("event-products")
 
-  // Form states para insumo
-  const [insumoForm, setInsumoForm] = useState({
+  // Pagination
+  const [suppliesPage, setSuppliesPage] = useState(1)
+  const [productsPage, setProductsPage] = useState(1)
+  const itemsPerPage = 10
+
+  // Data hooks
+  const { data: events = [] } = useEvents()
+  const { data: eventProductInventory = [] } = useEventProducts(selectedEventId)
+  const { data: eventSupplyInventory = [] } = useEventSupplies(selectedEventId)
+  const { data: allSupplies = [] } = useSupplies()
+  const { data: allProducts = [] } = useProducts()
+
+  // Paginated data
+  const supplies = allSupplies.slice((suppliesPage - 1) * itemsPerPage, suppliesPage * itemsPerPage)
+  const products = allProducts.slice((productsPage - 1) * itemsPerPage, productsPage * itemsPerPage)
+  const suppliesPages = Math.ceil(allSupplies.length / itemsPerPage)
+  const productsPages = Math.ceil(allProducts.length / itemsPerPage)
+
+  // Mutations
+  const supplyMutations = useSupplyMutations()
+  const productMutations = useProductMutations()
+  const inventoryMutations = useInventoryMutations(selectedEventId)
+
+  // Supply form
+  const [showSupplyDialog, setShowSupplyDialog] = useState(false)
+  const [editingSupply, setEditingSupply] = useState<Supply | null>(null)
+  const [supplyForm, setSupplyForm] = useState<CreateSupplyDto>({
     name: "",
-    description: "",
     unit: "unidades",
-    stock: 0,
-    minStock: 0,
     cost: 0,
-    supplier: "",
   })
 
-  // Form states para producto
-  const [productForm, setProductForm] = useState({
+  // Product form with recipe
+  const [showProductDialog, setShowProductDialog] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [productForm, setProductForm] = useState<CreateProductDto>({
     name: "",
-    description: "",
-    price: 0,
-    stock: 0,
-    minStock: 0,
-    category: "",
-    ingredients: [] as InsumoIngredient[],
+    cost: 0,
   })
+  const [useRecipe, setUseRecipe] = useState(false)
+  const [recipeSupplies, setRecipeSupplies] = useState<Array<{ supplyId: string; qtyPerUnit: number }>>([])
 
+  // Load products to event
+  const [showLoadProductsDialog, setShowLoadProductsDialog] = useState(false)
+  const [selectedProductsToLoad, setSelectedProductsToLoad] = useState<Array<{
+    productId: string
+    initialQty: number
+    minQty: number
+    salePrice: number
+    cost?: number
+  }>>([])
+
+  // Load supplies to event
+  const [showLoadSuppliesDialog, setShowLoadSuppliesDialog] = useState(false)
+  const [selectedSuppliesToLoad, setSelectedSuppliesToLoad] = useState<Array<{
+    supplyId: string
+    initialQty: number
+    minQty: number
+    cost: number
+  }>>([])
+
+  // ... (rest of the file until addSupplyToLoad)
+
+
+
+  // Reset pagination when changing tabs
   useEffect(() => {
-    loadInsumos()
-    loadProducts()
-  }, [])
+    setSuppliesPage(1)
+    setProductsPage(1)
+  }, [activeTab])
 
-  const loadInsumos = async () => {
-    const data = await fetchInsumos()
-    setInsumos(data)
+  // Supply handlers
+  const handleCreateSupply = async () => {
+    if (!supplyForm.name) return
+    await supplyMutations.createSupply.mutateAsync(supplyForm)
+    setShowSupplyDialog(false)
+    resetSupplyForm()
   }
 
-  const loadProducts = async () => {
-    const data = await fetchAllProducts()
-    setProducts(data)
+  const handleUpdateSupply = async () => {
+    if (!editingSupply) return
+    await supplyMutations.updateSupply.mutateAsync({
+      id: editingSupply.id,
+      data: supplyForm as UpdateSupplyDto,
+    })
+    setShowSupplyDialog(false)
+    setEditingSupply(null)
+    resetSupplyForm()
   }
 
-  const handleCreateInsumo = async () => {
-    if (!insumoForm.name) return
-    await createInsumo(insumoForm)
-    setShowCreateDialog(false)
-    setCreateType(null)
-    resetInsumoForm()
-    loadInsumos()
+  const handleDeleteSupply = async (id: string) => {
+    await supplyMutations.deleteSupply.mutateAsync(id)
   }
 
-  const handleUpdateInsumo = async () => {
-    if (!editingInsumo) return
-    await updateInsumo(editingInsumo.id, insumoForm)
-    setShowCreateDialog(false)
-    setEditingInsumo(null)
-    resetInsumoForm()
-    loadInsumos()
+  const openEditSupply = (supply: Supply) => {
+    setEditingSupply(supply)
+    setSupplyForm({
+      name: supply.name,
+      unit: supply.unit,
+      cost: supply.cost,
+    })
+    setShowSupplyDialog(true)
   }
 
-  const handleDeleteInsumo = async (id: string) => {
-    if (confirm("¿Seguro que deseas eliminar este insumo?")) {
-      await deleteInsumo(id)
-      loadInsumos()
-    }
+  const resetSupplyForm = () => {
+    setSupplyForm({ name: "", unit: "unidades", cost: 0 })
+    setEditingSupply(null)
   }
 
+  // Product handlers
   const handleCreateProduct = async () => {
-    if (!productForm.name || productForm.ingredients.length === 0) return
+    if (!productForm.name) return
 
-    // Calcular el costo total del producto basado en los insumos
-    const totalCost = productForm.ingredients.reduce((sum, ing) => {
-      const insumo = insumos.find((i) => i.id === ing.insumoId)
-      return sum + (insumo?.cost || 0) * ing.quantity
-    }, 0)
+    try {
+      const payload = useRecipe
+        ? { name: productForm.name }
+        : productForm
 
-    await createProduct({ ...productForm, cost: totalCost })
-    setShowCreateDialog(false)
-    setCreateType(null)
-    resetProductForm()
-    loadProducts()
+      const newProduct = await productMutations.createProduct.mutateAsync(payload as CreateProductDto)
+
+      if (useRecipe && recipeSupplies.length > 0 && newProduct) {
+        const assignData: AssignSuppliesDto = {
+          supplies: recipeSupplies
+        }
+        await productMutations.assignSupplies.mutateAsync({
+          id: newProduct.id,
+          data: assignData
+        })
+      }
+
+      setShowProductDialog(false)
+      resetProductForm()
+    } catch (error) {
+      console.error('Error creating product:', error)
+    }
   }
 
   const handleUpdateProduct = async () => {
     if (!editingProduct) return
 
-    const totalCost = productForm.ingredients.reduce((sum, ing) => {
-      const insumo = insumos.find((i) => i.id === ing.insumoId)
-      return sum + (insumo?.cost || 0) * ing.quantity
-    }, 0)
+    try {
+      const payload = useRecipe
+        ? { name: productForm.name }
+        : productForm
 
-    await updateProduct(editingProduct.id, { ...productForm, cost: totalCost })
-    setShowCreateDialog(false)
-    setEditingProduct(null)
-    resetProductForm()
-    loadProducts()
-  }
+      await productMutations.updateProduct.mutateAsync({
+        id: editingProduct.id,
+        data: payload as UpdateProductDto,
+      })
 
-  const handleDeleteProduct = async (id: string) => {
-    if (confirm("¿Seguro que deseas eliminar este producto?")) {
-      await deleteProduct(id)
-      loadProducts()
+      if (useRecipe && recipeSupplies.length > 0) {
+        const assignData: AssignSuppliesDto = {
+          supplies: recipeSupplies
+        }
+        await productMutations.assignSupplies.mutateAsync({
+          id: editingProduct.id,
+          data: assignData
+        })
+      }
+
+      setShowProductDialog(false)
+      setEditingProduct(null)
+      resetProductForm()
+    } catch (error) {
+      console.error('Error updating product:', error)
     }
   }
 
-  const resetInsumoForm = () => {
-    setInsumoForm({
-      name: "",
-      description: "",
-      unit: "unidades",
-      stock: 0,
-      minStock: 0,
-      cost: 0,
-      supplier: "",
-    })
-  }
-
-  const resetProductForm = () => {
-    setProductForm({
-      name: "",
-      description: "",
-      price: 0,
-      stock: 0,
-      minStock: 0,
-      category: "",
-      ingredients: [],
-    })
-  }
-
-  const openEditInsumo = (insumo: Insumo) => {
-    setEditingInsumo(insumo)
-    setCreateType("insumo")
-    setInsumoForm({
-      name: insumo.name,
-      description: insumo.description || "",
-      unit: insumo.unit,
-      stock: insumo.stock,
-      minStock: insumo.minStock,
-      cost: insumo.cost,
-      supplier: insumo.supplier || "",
-    })
-    setShowCreateDialog(true)
+  const handleDeleteProduct = async (id: string) => {
+    await productMutations.deleteProduct.mutateAsync(id)
   }
 
   const openEditProduct = (product: Product) => {
     setEditingProduct(product)
-    setCreateType("producto")
     setProductForm({
       name: product.name,
-      description: product.description || "",
-      price: product.price,
-      stock: product.stock,
-      minStock: product.minStock || 0,
-      category: product.category,
-      ingredients: product.ingredients || [],
+      cost: product.cost,
     })
-    setShowCreateDialog(true)
-  }
 
-  const addIngredient = () => {
-    setProductForm({
-      ...productForm,
-      ingredients: [...productForm.ingredients, { insumoId: "", insumoName: "", quantity: 1, unit: "" }],
-    })
-  }
-
-  const updateIngredient = (index: number, field: keyof InsumoIngredient, value: string | number) => {
-    const newIngredients = [...productForm.ingredients]
-
-    if (field === "insumoId") {
-      const insumo = insumos.find((i) => i.id === value)
-      if (insumo) {
-        newIngredients[index] = {
-          ...newIngredients[index],
-          insumoId: insumo.id,
-          insumoName: insumo.name,
-          unit: insumo.unit,
-        }
-      }
-    } else {
-      newIngredients[index] = { ...newIngredients[index], [field]: value }
+    if (product.supplies?.length) {
+      setUseRecipe(true)
+      setRecipeSupplies(product.supplies.map(s => ({
+        supplyId: s.supplyId,
+        qtyPerUnit: s.qtyPerUnit
+      })))
     }
 
-    setProductForm({ ...productForm, ingredients: newIngredients })
+    setShowProductDialog(true)
   }
 
-  const removeIngredient = (index: number) => {
-    setProductForm({
-      ...productForm,
-      ingredients: productForm.ingredients.filter((_, i) => i !== index),
-    })
-  }
-
-  const filteredInsumos = insumos.filter(
-    (i) =>
-      i.name.toLowerCase().includes(searchInsumos.toLowerCase()) ||
-      i.description?.toLowerCase().includes(searchInsumos.toLowerCase()),
-  )
-
-  const filteredProducts = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchProducts.toLowerCase()) ||
-      p.description?.toLowerCase().includes(searchProducts.toLowerCase()),
-  )
-
-  const lowStockInsumos = insumos.filter((i) => i.stock <= i.minStock)
-  const lowStockProducts = products.filter((p) => p.minStock && p.stock <= p.minStock)
-
-  const handleOpenCreate = () => {
-    setEditingInsumo(null)
+  const resetProductForm = () => {
+    setProductForm({ name: "", cost: 0 })
     setEditingProduct(null)
-    setCreateType(null)
-    resetInsumoForm()
-    resetProductForm()
-    setShowCreateDialog(true)
+    setUseRecipe(false)
+    setRecipeSupplies([])
+  }
+
+  const addSupplyToRecipe = () => {
+    setRecipeSupplies([...recipeSupplies, { supplyId: "", qtyPerUnit: 1 }])
+  }
+
+  const removeSupplyFromRecipe = (index: number) => {
+    setRecipeSupplies(recipeSupplies.filter((_, i) => i !== index))
+  }
+
+  const updateRecipeSupply = (index: number, field: 'supplyId' | 'qtyPerUnit', value: string | number) => {
+    const updated = [...recipeSupplies]
+    if (field === 'supplyId') {
+      updated[index].supplyId = value as string
+    } else {
+      updated[index].qtyPerUnit = value as number
+    }
+    setRecipeSupplies(updated)
+  }
+
+  // Load products to event
+  const addProductToLoad = () => {
+    setSelectedProductsToLoad([
+      ...selectedProductsToLoad,
+      { productId: "", initialQty: 0, minQty: 0, salePrice: 0 }
+    ])
+  }
+
+  const removeProductToLoad = (index: number) => {
+    setSelectedProductsToLoad(selectedProductsToLoad.filter((_, i) => i !== index))
+  }
+
+  const updateProductToLoad = (index: number, field: keyof typeof selectedProductsToLoad[0], value: string | number) => {
+    const updated = [...selectedProductsToLoad]
+    updated[index] = { ...updated[index], [field]: value }
+    setSelectedProductsToLoad(updated)
+  }
+
+  const handleLoadProducts = async () => {
+    if (!selectedEventId || selectedProductsToLoad.length === 0) return
+
+    try {
+      const data: LoadProductsDto = {
+        products: selectedProductsToLoad.filter(p => p.productId && p.initialQty > 0)
+      }
+      await inventoryMutations.loadProducts.mutateAsync(data)
+      setShowLoadProductsDialog(false)
+      setSelectedProductsToLoad([])
+    } catch (error) {
+      console.error('Error loading products:', error)
+    }
+  }
+
+  // Load supplies to event
+  // Load supplies to event
+  const addSupplyToLoad = () => {
+    setSelectedSuppliesToLoad([
+      ...selectedSuppliesToLoad,
+      { supplyId: "", initialQty: 0, minQty: 0, cost: 0 }
+    ])
+  }
+
+  const removeSupplyToLoad = (index: number) => {
+    setSelectedSuppliesToLoad(selectedSuppliesToLoad.filter((_, i) => i !== index))
+  }
+
+  const updateSupplyToLoad = (index: number, field: keyof typeof selectedSuppliesToLoad[0], value: string | number) => {
+    const updated = [...selectedSuppliesToLoad]
+    updated[index] = { ...updated[index], [field]: value }
+    setSelectedSuppliesToLoad(updated)
+  }
+
+  const handleLoadSupplies = async () => {
+    if (!selectedEventId || selectedSuppliesToLoad.length === 0) return
+
+    try {
+      const data: LoadSuppliesDto = {
+        supplies: selectedSuppliesToLoad.filter(s => s.supplyId && s.initialQty > 0)
+      }
+      await inventoryMutations.loadSupplies.mutateAsync(data)
+      setShowLoadSuppliesDialog(false)
+      setSelectedSuppliesToLoad([])
+    } catch (error) {
+      console.error('Error loading supplies:', error)
+    }
   }
 
   return (
-    <main className="flex-1 p-6 space-y-8 bg-background min-h-screen">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold">
-            Gestión de Inventario
-          </h1>
-          <p className="text-muted-foreground">Administra tus insumos y productos terminados</p>
-        </div>
-
-        <Button
-          onClick={handleOpenCreate}
-          size="lg"
-          className="bg-gradient-to-r from-[#1E2C6D] to-[#1E2C6D]/80 hover:from-[#1E2C6D]/90 hover:to-[#1E2C6D]/70 text-white shadow-lg h-12 px-6"
-        >
-          <Plus className="w-5 h-5 mr-2" />
-          Crear Nuevo
-        </Button>
+    <main className="flex-1 p-6 space-y-6 bg-background min-h-screen">
+      {/* Header */}
+      <div className="space-y-2">
+        <h1 className="text-4xl font-bold">Gestión de Inventario</h1>
+        <p className="text-muted-foreground">
+          Administra el inventario por evento y el catálogo de insumos y productos
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-gray-500/30 hover:border-gray-500/50 transition-all shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Insumos</CardTitle>
-            <Package className="h-5 w-5 text-gray-700" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{insumos.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Materias primas</p>
-          </CardContent>
-        </Card>
+      {/* Event Selector */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-4">
+            <Label htmlFor="event-select" className="text-sm font-medium whitespace-nowrap">
+              Seleccionar Evento:
+            </Label>
+            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+              <SelectTrigger id="event-select" className="w-[300px]">
+                <SelectValue placeholder="Selecciona un evento..." />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event.id} value={event.id}>
+                    {event.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Productos</CardTitle>
-            <ShoppingCart className="h-5 w-5 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-foreground">{products.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Listos para venta</p>
-          </CardContent>
-        </Card>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="event-products">
+            <Package className="h-4 w-4 mr-2" />
+            Inventario Productos
+          </TabsTrigger>
+          <TabsTrigger value="event-supplies">
+            <Box className="h-4 w-4 mr-2" />
+            Inventario Insumos
+          </TabsTrigger>
+          <TabsTrigger value="product-catalog">
+            <Layers className="h-4 w-4 mr-2" />
+            Catálogo Productos
+          </TabsTrigger>
+          <TabsTrigger value="supply-catalog">
+            <Box className="h-4 w-4 mr-2" />
+            Catálogo Insumos
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Alertas Stock</CardTitle>
-            <AlertTriangle className="h-5 w-5 text-orange-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-500">{lowStockInsumos.length + lowStockProducts.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Requieren atención</p>
-          </CardContent>
-        </Card>
+        {/* Tab 1: Event Product Inventory */}
+        <TabsContent value="event-products" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Inventario de Productos del Evento</h2>
+            {selectedEventId && (
+              <Button onClick={() => {
+                setSelectedProductsToLoad([])
+                setShowLoadProductsDialog(true)
+              }}>
+                <Upload className="h-4 w-4 mr-2" />
+                Cargar Productos
+              </Button>
+            )}
+          </div>
 
-        <Card className="backdrop-blur-xl bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-500/50 transition-all shadow-xl">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Valor Total</CardTitle>
-            <DollarSign className="h-5 w-5 text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-emerald-500">
-              ${insumos.reduce((sum, i) => sum + i.cost * i.stock, 0).toLocaleString()}
+          {!selectedEventId ? (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                Selecciona un evento para ver su inventario
+              </CardContent>
+            </Card>
+          ) : eventProductInventory.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                No hay productos en el inventario de este evento
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {eventProductInventory.map((item, index) => (
+                <Card key={`${item.id}-${index}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg capitalize">
+                        {item.product.name}
+                      </CardTitle>
+                      {item.hasRecipe && (
+                        <Badge variant="outline" className="bg-orange-500/10 text-orange-500">
+                          Receta
+                        </Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Stock:</span>
+                      <span className="font-medium">
+                        {item.currentQty} / {item.initialQty}
+                      </span>
+                    </div>
+                    {item.currentQty <= item.minQty && (
+                      <div className="flex items-center gap-2 text-sm text-red-500">
+                        <AlertTriangle className="h-4 w-4" />
+                        Stock bajo (min: {item.minQty})
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Precio venta:</span>
+                      <span className="font-medium">${Number(item.salePrice || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Costo:</span>
+                      <span className="font-medium">${Number(item.cost || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Margen:</span>
+                      <span className="font-medium text-green-600">
+                        {Number(item.profitMargin || 0).toFixed(1)}%
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Inventario total</p>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </TabsContent>
 
-      {(lowStockInsumos.length > 0 || lowStockProducts.length > 0) && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          {lowStockInsumos.length > 0 && (
-            <Card className="border border-white/20 bg-card hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg text-red-400">Insumos con Stock Bajo</CardTitle>
-                <AlertTriangle className="w-5 h-5 text-red-400" />
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {lowStockInsumos.map((insumo) => (
-                  <div
-                    key={insumo.id}
-                    className="flex items-center justify-between p-3 bg-gradient-blue rounded-lg border border-red-500/30"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{insumo.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Actual: <span className="text-red-400 font-bold">{insumo.stock}</span> / Mínimo:{" "}
-                        <span className="font-bold">{insumo.minStock}</span> {insumo.unit}
-                      </p>
-                    </div>
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">¡Bajo!</Badge>
-                  </div>
-                ))}
+        {/* Tab 2: Event Supply Inventory */}
+        <TabsContent value="event-supplies" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Inventario de Insumos del Evento</h2>
+            {selectedEventId && (
+              <Button onClick={() => {
+                setSelectedSuppliesToLoad([])
+                setShowLoadSuppliesDialog(true)
+              }}>
+                <Upload className="h-4 w-4 mr-2" />
+                Cargar Insumos
+              </Button>
+            )}
+          </div>
+
+          {!selectedEventId ? (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                Selecciona un evento para ver su inventario
               </CardContent>
             </Card>
-          )}
-
-          {lowStockProducts.length > 0 && (
-            <Card className="border border-white/20 bg-card hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-lg text-yellow-400">Productos con Stock Bajo</CardTitle>
-                <TrendingDown className="w-5 h-5 text-yellow-400" />
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {lowStockProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between p-3 bg-gradient-blue rounded-lg border border-yellow-500/30"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        Actual: <span className="text-yellow-400 font-bold">{product.stock}</span> / Mínimo:{" "}
-                        <span className="font-bold">{product.minStock}</span> unidades
-                      </p>
-                    </div>
-                    <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">¡Bajo!</Badge>
-                  </div>
-                ))}
+          ) : eventSupplyInventory.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center text-muted-foreground">
+                No hay insumos en el inventario de este evento
               </CardContent>
             </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {eventSupplyInventory.map((item, index) => (
+                <Card key={`${item.id}-${index}`}>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg capitalize">
+                      {item.supply.name}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Stock:</span>
+                      <span className="font-medium">
+                        {item.currentQty} / {item.initialQty} {item.supply.unit}
+                      </span>
+                    </div>
+                    {item.currentQty <= item.minQty && (
+                      <div className="flex items-center gap-2 text-sm text-red-500">
+                        <AlertTriangle className="h-4 w-4" />
+                        Stock bajo (min: {item.minQty})
+                      </div>
+                    )}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Unidad:</span>
+                      <span className="font-medium">{item.supply.unit}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
-        </div>
-      )}
+        </TabsContent>
 
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="bg-card border-white/20 max-w-4xl max-h-[90vh] overflow-y-auto">
-          {!createType && !editingInsumo && !editingProduct ? (
-            // Pantalla de selección de tipo
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">¿Qué deseas crear?</DialogTitle>
-              </DialogHeader>
-              <div className="grid grid-cols-2 gap-6 py-8">
-                <Button
-                  onClick={() => setCreateType("insumo")}
-                  className="h-auto py-12 flex flex-col items-center gap-4 bg-gradient-to-br from-[#1E2C6D] to-[#1E2C6D]/70 hover:from-[#1E2C6D]/90 hover:to-[#1E2C6D]/60 text-white shadow-xl hover:scale-105 transition-all"
-                >
-                  <Layers className="w-16 h-16" />
-                  <div className="text-center">
-                    <div className="font-bold text-2xl">Insumo</div>
-                    <div className="text-sm opacity-90 mt-2">Materia prima o ingrediente básico</div>
-                  </div>
-                </Button>
+        {/* Tab 3: Product Catalog */}
+        <TabsContent value="product-catalog" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Productos ({allProducts.length})</h2>
+            <Button
+              onClick={() => {
+                resetProductForm()
+                setShowProductDialog(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Producto
+            </Button>
+          </div>
 
-                <Button
-                  onClick={() => setCreateType("producto")}
-                  className="h-auto py-12 flex flex-col items-center gap-4 bg-gradient-to-br from-[#52c78c] to-[#52c78c]/70 hover:from-[#52c78c]/90 hover:to-[#52c78c]/60 text-white shadow-xl hover:scale-105 transition-all"
-                >
-                  <Box className="w-16 h-16" />
-                  <div className="text-center">
-                    <div className="font-bold text-2xl">Producto</div>
-                    <div className="text-sm opacity-90 mt-2">Item terminado listo para vender</div>
-                  </div>
-                </Button>
-              </div>
-            </>
-          ) : createType === "insumo" || editingInsumo ? (
-            // Formulario de insumo
-            <>
-              <DialogHeader>
-                <DialogTitle>{editingInsumo ? "Editar Insumo" : "Nuevo Insumo"}</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Nombre *</Label>
-                    <Input
-                      value={insumoForm.name}
-                      onChange={(e) => setInsumoForm({ ...insumoForm, name: e.target.value })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Unidad *</Label>
-                    <Select value={insumoForm.unit} onValueChange={(v) => setInsumoForm({ ...insumoForm, unit: v })}>
-                      <SelectTrigger className="bg-transparent border-white/20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-white/20">
-                        <SelectItem value="unidades">Unidades</SelectItem>
-                        <SelectItem value="kg">Kilogramos</SelectItem>
-                        <SelectItem value="litros">Litros</SelectItem>
-                        <SelectItem value="gramos">Gramos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Costo</TableHead>
+                  <TableHead>Receta</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {products.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No hay productos
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell className="font-medium capitalize">{product.name}</TableCell>
+                      <TableCell>${Number(product.cost || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        {product.supplies?.length ? (
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-500">
+                            Sí ({product.supplies.length})
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">No</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={product.isActive ? "default" : "secondary"}>
+                          {product.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEditProduct(product)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <DeleteConfirmDialog
+                            trigger={
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            }
+                            title="¿Eliminar producto?"
+                            description={`Esto desactivará "${product.name}". Esta acción no se puede deshacer.`}
+                            onConfirm={() => handleDeleteProduct(product.id)}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
 
-                <div>
-                  <Label>Descripción</Label>
-                  <Textarea
-                    value={insumoForm.description}
-                    onChange={(e) => setInsumoForm({ ...insumoForm, description: e.target.value })}
-                    className="bg-transparent border-white/20"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Stock Actual *</Label>
-                    <Input
-                      type="number"
-                      value={insumoForm.stock}
-                      onChange={(e) => setInsumoForm({ ...insumoForm, stock: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Stock Mínimo *</Label>
-                    <Input
-                      type="number"
-                      value={insumoForm.minStock}
-                      onChange={(e) => setInsumoForm({ ...insumoForm, minStock: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Costo (por unidad) *</Label>
-                    <Input
-                      type="number"
-                      value={insumoForm.cost}
-                      onChange={(e) => setInsumoForm({ ...insumoForm, cost: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Proveedor</Label>
-                  <Input
-                    value={insumoForm.supplier}
-                    onChange={(e) => setInsumoForm({ ...insumoForm, supplier: e.target.value })}
-                    className="bg-transparent border-white/20"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
+            {productsPages > 1 && (
+              <div className="flex items-center justify-center gap-2 p-4">
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    setShowCreateDialog(false)
-                    setEditingInsumo(null)
-                    setCreateType(null)
-                    resetInsumoForm()
-                  }}
-                  className="border-white/20"
+                  size="sm"
+                  onClick={() => setProductsPage(p => Math.max(1, p - 1))}
+                  disabled={productsPage === 1}
                 >
-                  Cancelar
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
+                <span className="text-sm">
+                  Página {productsPage} de {productsPages}
+                </span>
                 <Button
-                  onClick={editingInsumo ? handleUpdateInsumo : handleCreateInsumo}
-                  className="bg-[#1E2C6D] hover:bg-[#1E2C6D]/80"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setProductsPage(p => Math.min(productsPages, p + 1))}
+                  disabled={productsPage === productsPages}
                 >
-                  {editingInsumo ? "Actualizar" : "Crear"}
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </>
-          ) : (
-            // Formulario de producto
-            <>
-              <DialogHeader>
-                <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Nombre *</Label>
-                    <Input
-                      value={productForm.name}
-                      onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Categoría *</Label>
-                    <Input
-                      value={productForm.category}
-                      onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                      className="bg-transparent border-white/20"
-                      placeholder="Ej: Comida, Bebida"
-                    />
-                  </div>
-                </div>
+            )}
+          </Card>
+        </TabsContent>
 
-                <div>
-                  <Label>Descripción</Label>
-                  <Textarea
-                    value={productForm.description}
-                    onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                    className="bg-transparent border-white/20"
-                  />
-                </div>
+        {/* Tab 4: Supply Catalog */}
+        <TabsContent value="supply-catalog" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold">Insumos ({allSupplies.length})</h2>
+            <Button
+              onClick={() => {
+                resetSupplyForm()
+                setShowSupplyDialog(true)
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Insumo
+            </Button>
+          </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label>Precio de Venta *</Label>
-                    <Input
-                      type="number"
-                      value={productForm.price}
-                      onChange={(e) => setProductForm({ ...productForm, price: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Stock Inicial *</Label>
-                    <Input
-                      type="number"
-                      value={productForm.stock}
-                      onChange={(e) => setProductForm({ ...productForm, stock: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                  <div>
-                    <Label>Stock Mínimo</Label>
-                    <Input
-                      type="number"
-                      value={productForm.minStock}
-                      onChange={(e) => setProductForm({ ...productForm, minStock: Number(e.target.value) })}
-                      className="bg-transparent border-white/20"
-                    />
-                  </div>
-                </div>
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nombre</TableHead>
+                  <TableHead>Unidad</TableHead>
+                  <TableHead>Costo</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {supplies.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No hay insumos
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  supplies.map((supply) => (
+                    <TableRow key={supply.id}>
+                      <TableCell className="font-medium capitalize">{supply.name}</TableCell>
+                      <TableCell>{supply.unit}</TableCell>
+                      <TableCell>${Number(supply.cost || 0).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant={supply.isActive ? "default" : "secondary"}>
+                          {supply.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEditSupply(supply)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <DeleteConfirmDialog
+                            trigger={
+                              <Button variant="ghost" size="sm">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            }
+                            title="¿Eliminar insumo?"
+                            description={`Esto desactivará "${supply.name}". Esta acción no se puede deshacer.`}
+                            onConfirm={() => handleDeleteSupply(supply.id)}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>Insumos / Ingredientes *</Label>
+            {suppliesPages > 1 && (
+              <div className="flex items-center justify-center gap-2 p-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSuppliesPage(p => Math.max(1, p - 1))}
+                  disabled={suppliesPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm">
+                  Página {suppliesPage} de {suppliesPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSuppliesPage(p => Math.min(suppliesPages, p + 1))}
+                  disabled={suppliesPage === suppliesPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Supply Dialog */}
+      <Dialog open={showSupplyDialog} onOpenChange={setShowSupplyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingSupply ? "Editar Insumo" : "Nuevo Insumo"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="supply-name">Nombre</Label>
+              <Input
+                id="supply-name"
+                value={supplyForm.name}
+                onChange={(e) => setSupplyForm({ ...supplyForm, name: e.target.value })}
+                placeholder="Ej: Harina"
+              />
+            </div>
+            <div>
+              <Label htmlFor="supply-unit">Unidad</Label>
+              <Select
+                value={supplyForm.unit}
+                onValueChange={(value) => setSupplyForm({ ...supplyForm, unit: value })}
+              >
+                <SelectTrigger id="supply-unit">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unidades">Unidades</SelectItem>
+                  <SelectItem value="kg">Kilogramos</SelectItem>
+                  <SelectItem value="g">Gramos</SelectItem>
+                  <SelectItem value="l">Litros</SelectItem>
+                  <SelectItem value="ml">Mililitros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="supply-cost">Costo</Label>
+              <Input
+                id="supply-cost"
+                type="number"
+                step="0.01"
+                value={supplyForm.cost}
+                onChange={(e) => setSupplyForm({ ...supplyForm, cost: parseFloat(e.target.value) || 0 })}
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowSupplyDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={editingSupply ? handleUpdateSupply : handleCreateSupply}>
+                {editingSupply ? "Guardar" : "Crear"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Dialog */}
+      <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="product-name">Nombre</Label>
+              <Input
+                id="product-name"
+                value={productForm.name}
+                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                placeholder="Ej: Hamburguesa Completa"
+              />
+            </div>
+            <div>
+              <Label htmlFor="product-cost">Costo Base</Label>
+              <Input
+                id="product-cost"
+                type="number"
+                step="0.01"
+                value={productForm.cost}
+                onChange={(e) => setProductForm({ ...productForm, cost: parseFloat(e.target.value) || 0 })}
+                disabled={useRecipe}
+              />
+              {useRecipe && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  El costo se calculará automáticamente desde la receta
+                </p>
+              )}
+            </div>
+
+            {/* Recipe Section */}
+            <div className="space-y-3 pt-2 border-t">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="use-recipe"
+                  checked={useRecipe}
+                  onCheckedChange={(checked) => setUseRecipe(!!checked)}
+                />
+                <Label htmlFor="use-recipe" className="cursor-pointer">
+                  Este producto tiene receta (asignar insumos)
+                </Label>
+              </div>
+
+              {useRecipe && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label>Insumos de la Receta</Label>
                     <Button
                       type="button"
+                      variant="outline"
                       size="sm"
-                      onClick={addIngredient}
-                      className="bg-[#1E2C6D] hover:bg-[#1E2C6D]/80"
+                      onClick={addSupplyToRecipe}
                     >
-                      <Plus className="w-4 h-4 mr-1" />
+                      <Plus className="h-4 w-4 mr-1" />
                       Agregar Insumo
                     </Button>
                   </div>
 
-                  <div className="space-y-3">
-                    {productForm.ingredients.map((ingredient, index) => (
-                      <div key={index} className="flex gap-2 items-end">
-                        <div className="flex-1">
-                          <Label className="text-xs">Insumo</Label>
-                          <Select
-                            value={ingredient.insumoId}
-                            onValueChange={(v) => updateIngredient(index, "insumoId", v)}
+                  {recipeSupplies.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No hay insumos asignados. Haz clic en "Agregar Insumo" para empezar.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {recipeSupplies.map((item, index) => (
+                        <div key={index} className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <Label className="text-xs">Insumo</Label>
+                            <Select
+                              value={item.supplyId}
+                              onValueChange={(value) => updateRecipeSupply(index, 'supplyId', value)}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Seleccionar..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {allSupplies.map((supply) => (
+                                  <SelectItem key={supply.id} value={supply.id}>
+                                    {supply.name} ({supply.unit})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-32">
+                            <Label className="text-xs">Cantidad</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={item.qtyPerUnit}
+                              onChange={(e) => updateRecipeSupply(index, 'qtyPerUnit', parseFloat(e.target.value) || 0)}
+                              className="h-9"
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSupplyFromRecipe(index)}
+                            className="h-9"
                           >
-                            <SelectTrigger className="bg-transparent border-white/20">
-                              <SelectValue placeholder="Seleccionar..." />
-                            </SelectTrigger>
-                            <SelectContent className="bg-card border-white/20">
-                              {insumos.map((insumo) => (
-                                <SelectItem key={insumo.id} value={insumo.id}>
-                                  {insumo.name} (${insumo.cost}/{insumo.unit})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <div className="w-32">
-                          <Label className="text-xs">Cantidad</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={ingredient.quantity}
-                            onChange={(e) => updateIngredient(index, "quantity", Number(e.target.value))}
-                            className="bg-transparent border-white/20"
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeIngredient(index)}
-                          className="text-red-400 hover:bg-red-900 hover:text-red-300"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {productForm.ingredients.length > 0 && (
-                    <div className="mt-4 p-4 bg-gradient-blue rounded-lg border border-white/20">
-                      <p className="text-sm text-muted-foreground mb-2">Costo estimado del producto:</p>
-                      <p className="text-2xl font-bold text-white">
-                        $
-                        {productForm.ingredients
-                          .reduce((sum, ing) => {
-                            const insumo = insumos.find((i) => i.id === ing.insumoId)
-                            return sum + (insumo?.cost || 0) * ing.quantity
-                          }, 0)
-                          .toFixed(2)}
-                      </p>
-                      {productForm.price > 0 && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Margen: $
-                          {(
-                            productForm.price -
-                            productForm.ingredients.reduce((sum, ing) => {
-                              const insumo = insumos.find((i) => i.id === ing.insumoId)
-                              return sum + (insumo?.cost || 0) * ing.quantity
-                            }, 0)
-                          ).toFixed(2)}
-                        </p>
-                      )}
+                      ))}
                     </div>
                   )}
                 </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateDialog(false)
-                    setEditingProduct(null)
-                    setCreateType(null)
-                    resetProductForm()
-                  }}
-                  className="border-white/20"
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  onClick={editingProduct ? handleUpdateProduct : handleCreateProduct}
-                  className="bg-gradient-blue"
-                >
-                  {editingProduct ? "Actualizar" : "Crear"}
-                </Button>
-              </div>
-            </>
-          )}
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button variant="outline" onClick={() => setShowProductDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={editingProduct ? handleUpdateProduct : handleCreateProduct}>
+                {editingProduct ? "Guardar" : "Crear"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* El manejo de tabs se eliminó, ahora se muestran ambas listas y el diálogo es general */}
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Layers className="w-6 h-6 text-blue-950" />
-            <h2 className="text-2xl font-bold text-foreground">Insumos</h2>
-            <Badge className="bg-blue-950 text-white">{insumos.length}</Badge>
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar insumos..."
-              value={searchInsumos}
-              onChange={(e) => setSearchInsumos(e.target.value)}
-              className="pl-10 bg-transparent border-white/20"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredInsumos.map((insumo) => (
-              <Card
-                key={insumo.id}
-                className="border border-white/20 bg-card hover:shadow-lg transition-all hover:scale-[1.02]"
+      {/* Load Products Dialog */}
+      <Dialog open={showLoadProductsDialog} onOpenChange={setShowLoadProductsDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cargar Productos al Inventario del Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                Selecciona los productos y configura su inventario inicial
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={addProductToLoad}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleLoadProducts}
+                disabled={selectedProductsToLoad.length === 0}
               >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-foreground mb-1">{insumo.name}</h3>
-                      <p className="text-sm text-muted-foreground">{insumo.description}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="ghost" onClick={() => openEditInsumo(insumo)} className="h-8 w-8 p-0">
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteInsumo(insumo.id)}
-                        className="h-8 w-8 p-0 text-red-400 hover:bg-red-900 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between p-2 bg-gradient-blue rounded border border-white/10">
-                      <span className="text-muted-foreground">Stock:</span>
-                      <span className="font-semibold text-foreground">
-                        {insumo.stock} {insumo.unit}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-2 bg-gradient-blue rounded border border-white/10">
-                      <span className="text-muted-foreground">Costo unitario:</span>
-                      <span className="font-semibold text-green-400">${insumo.cost}</span>
-                    </div>
-                    {insumo.supplier && (
-                      <div className="flex justify-between p-2 bg-gradient-blue rounded border border-white/10">
-                        <span className="text-muted-foreground">Proveedor:</span>
-                        <span className="text-foreground/80">{insumo.supplier}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {insumo.stock <= insumo.minStock && (
-                    <Badge className="mt-4 w-full justify-center bg-red-500/20 text-red-400 border-red-500/30">
-                      <AlertTriangle className="w-3 h-3 mr-1" />
-                      Stock Bajo
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                Cargar {selectedProductsToLoad.length} Producto(s)
+              </Button>
+            </div>
           </div>
-        </div>
+        </DialogContent>
+      </Dialog>
 
-        <div className="space-y-4 pt-8 border-t border-white/10">
-          <div className="flex items-center gap-2">
-            <Box className="w-6 h-6 text-blue-950" />
-            <h2 className="text-2xl font-bold text-foreground">Productos</h2>
-            <Badge className="bg-blue-950 text-white">{products.length}</Badge>
-          </div>
+      {/* Load Supplies Dialog */}
+      <Dialog open={showLoadSuppliesDialog} onOpenChange={setShowLoadSuppliesDialog}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cargar Insumos al Inventario del Evento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">
+                Selecciona los insumos y configura su stock inicial
+              </p>
+              <Button type="button" variant="outline" size="sm" onClick={addSupplyToLoad}>
+                <Plus className="h-4 w-4 mr-1" />
+                Agregar Insumo
+              </Button>
+            </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <Input
-              placeholder="Buscar productos..."
-              value={searchProducts}
-              onChange={(e) => setSearchProducts(e.target.value)}
-              className="pl-10 bg-transparent border-white/20"
-            />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredProducts.map((product) => (
-              <Card
-                key={product.id}
-                className="border border-white/20 bg-card hover:shadow-lg transition-all hover:scale-[1.02]"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-foreground">{product.name}</h3>
-                        <Badge className="bg-[#1E2C6D]/20 text-[#1E2C6D] border-[#1E2C6D]/30">{product.category}</Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{product.description}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => openEditProduct(product)}
-                        className="h-8 w-8 p-0"
+            {selectedSuppliesToLoad.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No hay insumos seleccionados
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {selectedSuppliesToLoad.map((item, index) => (
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded">
+                    <div className="col-span-4">
+                      <Label className="text-xs">Insumo</Label>
+                      <Select
+                        value={item.supplyId}
+                        onValueChange={(value) => updateSupplyToLoad(index, 'supplyId', value)}
                       >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDeleteProduct(product.id)}
-                        className="h-8 w-8 p-0 text-red-400 hover:bg-red-900 hover:text-red-300"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div className="p-2 bg-gradient-blue rounded border border-white/10">
-                        <span className="text-muted-foreground block text-xs">Precio:</span>
-                        <p className="font-semibold text-white">${product.price}</p>
-                      </div>
-                      <div className="p-2 bg-gradient-blue rounded border border-white/10">
-                        <span className="text-muted-foreground block text-xs">Costo:</span>
-                        <p className="font-semibold text-foreground">${product.cost}</p>
-                      </div>
-                      <div className="p-2 bg-gradient-blue rounded border border-white/10">
-                        <span className="text-muted-foreground block text-xs">Stock:</span>
-                        <p className="font-semibold text-foreground">{product.stock}</p>
-                      </div>
-                      <div className="p-2 bg-gradient-blue rounded border border-white/10">
-                        <span className="text-muted-foreground block text-xs">Margen:</span>
-                        <p className="font-semibold text-blue-400">${(product.price - product.cost).toFixed(2)}</p>
-                      </div>
-                    </div>
-
-                    {product.ingredients && product.ingredients.length > 0 && (
-                      <div className="pt-3 border-t border-white/10">
-                        <p className="text-xs text-muted-foreground mb-2 font-semibold">Ingredientes:</p>
-                        <div className="space-y-1">
-                          {product.ingredients.map((ing, idx) => (
-                            <div key={idx} className="text-xs text-foreground/70 flex items-center gap-1">
-                              <span className="w-1 h-1 rounded-full bg-[#1E2C6D]" />
-                              {ing.insumoName} ({ing.quantity} {ing.unit})
-                            </div>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Seleccionar..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allSupplies.map((supply) => (
+                            <SelectItem key={supply.id} value={supply.id}>
+                              {supply.name} ({supply.unit})
+                            </SelectItem>
                           ))}
-                        </div>
-                      </div>
-                    )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Stock Inicial</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={item.initialQty}
+                        onChange={(e) => updateSupplyToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Label className="text-xs">Stock Mínimo</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        value={item.minQty}
+                        onChange={(e) => updateSupplyToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="col-span-3">
+                      <Label className="text-xs">Costo Unitario</Label>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.cost}
+                        onChange={(e) => updateSupplyToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div className="col-span-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSupplyToLoad(index)}
+                        className="h-9"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
+                ))}
+              </div>
+            )}
 
-                  {product.minStock && product.stock <= product.minStock && (
-                    <Badge className="mt-4 w-full justify-center bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-                      <TrendingDown className="w-3 h-3 mr-1" />
-                      Stock Bajo
-                    </Badge>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+            <div className="flex gap-2 justify-end pt-4 border-t">
+              <Button variant="outline" onClick={() => setShowLoadSuppliesDialog(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleLoadSupplies}
+                disabled={selectedSuppliesToLoad.length === 0}
+              >
+                Cargar {selectedSuppliesToLoad.length} Insumo(s)
+              </Button>
+            </div>
           </div>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }

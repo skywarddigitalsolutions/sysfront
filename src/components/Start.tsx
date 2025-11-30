@@ -1,8 +1,6 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Event, EventStatistics } from "@/lib/types"
-import { useQuery } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/Context/AuthContext"
@@ -10,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, Truck, ShoppingBag, BarChart3, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CountdownTimer } from "./CountDownTimer"
+import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
   { name: "Inicio", icon: Home, path: "/inicio" },
@@ -30,23 +29,16 @@ export default function Start() {
   const [itemFilter, setItemFilter] = useState("")
   const [sortBy, setSortBy] = useState<"name" | "quantity" | "revenue">("quantity")
 
-  const { data: events } = useQuery<Event[]>({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
-  })
+  const { data: events } = useEvents()
 
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) setSelectedEventId(events[0].id)
   }, [events, selectedEventId])
 
-  const { data: statistics } = useQuery<EventStatistics>({
-    queryKey: ["eventStatistics", selectedEventId],
-    queryFn: () => fetchEventStatistics(selectedEventId),
-    enabled: !!selectedEventId,
-  })
+  const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
   const chartData = useMemo(() => {
-    if (!statistics) return []
+    if (!statistics || !statistics.topSellingItems) return []
 
     let data = Object.entries(statistics.topSellingItems).map(([name, quantity]) => ({
       name,
@@ -73,7 +65,7 @@ export default function Start() {
     statistics && statistics.totalInvestment > 0 ? ((profit / statistics.totalInvestment) * 100).toFixed(2) : "0.00"
 
   const selectedEvent = events?.find((e) => e.id === selectedEventId)
-  const nextEvent = events?.[0] || { name: "Próximo Evento", date: "2025-12-31T18:00:00" }
+  const nextEvent = events?.[0] || { name: "Próximo Evento", startDate: "2025-12-31T18:00:00", endDate: "2025-12-31T23:00:00", id: "", isActive: false, isClosed: false, createdAt: "" }
 
   useEffect(() => {
     if (user) {
@@ -82,6 +74,8 @@ export default function Start() {
   }, [user])
 
   if (isLoading || !user) return null
+
+  console.log('profit --> ', profitPercentage)
 
   return (
     <main className="flex flex-col min-h-screen bg-black">
@@ -103,7 +97,7 @@ export default function Start() {
               </div>
 
               <div className="flex flex-col gap-4">
-                <CountdownTimer targetDate={nextEvent.date} />
+                <CountdownTimer targetDate={nextEvent.startDate} />
 
                 <div className="flex flex-wrap gap-3 mt-2">
                   <Button
@@ -133,7 +127,7 @@ export default function Start() {
               <div className="space-y-4">
                 <div>
                   <p className="text-white/60 text-sm mb-1">Inversión Total</p>
-                  <p className="text-3xl font-bold text-white">${statistics?.totalInvestment.toFixed(2) || "0.00"}</p>
+                  <p className="text-3xl font-bold text-white">${statistics?.totalInvestment?.toFixed(2) || "0.00"}</p>
                 </div>
 
                 <div className="h-px bg-white/20" />
@@ -193,7 +187,7 @@ export default function Start() {
                 <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-500">${statistics.totalInvestment.toFixed(2)}</div>
+                <div className="text-2xl font-bold text-blue-500">${statistics?.totalInvestment?.toFixed(2) || "0.00"}</div>
                 <p className="text-xs text-white/60 mt-1">Capital invertido</p>
               </CardContent>
             </Card>

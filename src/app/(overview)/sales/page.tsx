@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
-import type { Order } from "@/lib/types"
+import type { Order } from "@/features/orders/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,13 +18,14 @@ import {
   ShoppingCart,
   Users,
   CreditCard,
-  Phone,
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { useEvents } from "@/features/events/hooks/useEvents"
+import { useOrders } from "@/features/orders/hooks/useOrders"
 
 export default function VentasDashboard() {
   return (
@@ -42,22 +42,9 @@ function VentasContent() {
   const [paymentFilter, setPaymentFilter] = useState<string>("all")
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
-  const { data: events = [] } = useQuery({
-    queryKey: ["events"],
-    queryFn: fetchEvents,
-  })
+  const { data: events = [] } = useEvents()
 
-  const { data: orders = [], refetch: refetchOrders } = useQuery({
-    queryKey: ["orders", selectedEventId],
-    queryFn: () => fetchOrders(selectedEventId),
-    enabled: !!selectedEventId,
-  })
-
-  const { data: statistics } = useQuery({
-    queryKey: ["statistics", selectedEventId],
-    queryFn: () => fetchEventStatistics(selectedEventId),
-    enabled: !!selectedEventId,
-  })
+  const { data: orders = [], refetch: refetchOrders } = useOrders(selectedEventId)
 
   useEffect(() => {
     if (events.length > 0 && !selectedEventId) {
@@ -77,14 +64,15 @@ function VentasContent() {
   // Filtrar órdenes
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
-      const customerName = order.customerIdentifier || order.customerName || ""
+      const customerName = order.customerIdentifier || "Cliente"
       const matchesSearch =
         customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.customerPhone?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+        order.id.toLowerCase().includes(searchTerm.toLowerCase())
 
-      const matchesStatus = statusFilter === "all" || order.status === statusFilter
-      const matchesPayment = paymentFilter === "all" || order.paymentMethod === paymentFilter
+      const matchesStatus = statusFilter === "all" || order.status.name === statusFilter
+      // Payment method might not be available in the current type definition, handling gracefully
+      const paymentMethod = (order as any).paymentMethod || "unknown"
+      const matchesPayment = paymentFilter === "all" || paymentMethod === paymentFilter
 
       return matchesSearch && matchesStatus && matchesPayment
     })
@@ -92,14 +80,14 @@ function VentasContent() {
 
   // Calcular métricas
   const metrics = useMemo(() => {
-    const totalSales = filteredOrders.reduce((sum, order) => sum + order.total, 0)
+    const totalSales = filteredOrders.reduce((sum, order) => sum + Number(order.totalAmount), 0)
     const totalOrders = filteredOrders.length
     const averageTicket = totalOrders > 0 ? totalSales / totalOrders : 0
 
     const paymentMethodBreakdown = filteredOrders.reduce(
       (acc, order) => {
-        const method = order.paymentMethod || "unknown"
-        acc[method] = (acc[method] || 0) + order.total
+        const method = (order as any).paymentMethod || "unknown"
+        acc[method] = (acc[method] || 0) + Number(order.totalAmount)
         return acc
       },
       {} as Record<string, number>,
@@ -107,8 +95,8 @@ function VentasContent() {
 
     const cashierBreakdown = filteredOrders.reduce(
       (acc, order) => {
-        const cashier = order.cashier || "Sin asignar"
-        acc[cashier] = (acc[cashier] || 0) + order.total
+        const cashier = order.createdBy?.userName || "Sin asignar"
+        acc[cashier] = (acc[cashier] || 0) + Number(order.totalAmount)
         return acc
       },
       {} as Record<string, number>,
@@ -123,15 +111,14 @@ function VentasContent() {
     }
   }, [filteredOrders])
 
-  // Comparación entre eventos
+  // Comparación entre eventos (Mock por ahora, ya que requeriría datos históricos complejos)
   const eventComparison = useMemo(() => {
     return events.map((event) => ({
       eventId: event.id,
       eventName: event.name,
-      // Estos datos vendrían del backend, por ahora usamos mock
-      totalSales: Math.random() * 50000 + 20000,
-      totalOrders: Math.floor(Math.random() * 200 + 50),
-      topProduct: "Hamburguesa Clásica",
+      totalSales: 0, // Placeholder
+      totalOrders: 0, // Placeholder
+      topProduct: "N/A",
     }))
   }, [events])
 
@@ -154,24 +141,26 @@ function VentasContent() {
 
   const getPaymentMethodLabel = (method?: string) => {
     const labels: Record<string, string> = {
+      EFECTIVO: "Efectivo",
+      TRANSFERENCIA: "Transferencia",
       cash: "Efectivo",
       card: "Tarjeta",
       transfer: "Transferencia",
       qr: "QR",
     }
-    return labels[method || ""] || "Desconocido"
+    return labels[method || ""] || method || "Desconocido"
   }
 
   // Normalizar estado
   const normalizeStatus = (status: string): "pending" | "in_progress" | "completed" | "delivered" => {
     const statusMap: Record<string, "pending" | "in_progress" | "completed" | "delivered"> = {
-      PENDIENTE: "pending",
-      EN_PREPARACION: "in_progress",
-      COMPLETADO: "completed",
+      PENDING: "pending",
+      IN_PROGRESS: "in_progress",
+      COMPLETED: "completed",
+      CANCELLED: "delivered", // Mapping cancelled to something visible or handling differently
       pending: "pending",
       in_progress: "in_progress",
       completed: "completed",
-      delivered: "delivered",
     }
     return statusMap[status] || "pending"
   }
@@ -214,7 +203,7 @@ function VentasContent() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{formatCurrency(metrics.totalSales)}</div>
-              <p className="text-xs text-white/60">+12.5% vs. evento anterior</p>
+              <p className="text-xs text-white/60">Total acumulado</p>
             </CardContent>
           </Card>
 
@@ -245,7 +234,7 @@ function VentasContent() {
           </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">{metrics.totalOrders}</div>
-              <p className="text-xs text-muted-foreground">Únicos atendidos</p>
+              <p className="text-xs text-muted-foreground">Transacciones</p>
             </CardContent>
           </Card>
         </div>
@@ -260,7 +249,7 @@ function VentasContent() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
                 <Input
-                  placeholder="Buscar por cliente, teléfono o N° orden..."
+                  placeholder="Buscar por cliente o N° orden..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="border-white/20 bg-white/10 text-white placeholder:text-white/50 pl-10"
@@ -273,10 +262,9 @@ function VentasContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="in_progress">En Preparación</SelectItem>
-                  <SelectItem value="completed">Completado</SelectItem>
-                  <SelectItem value="delivered">Entregado</SelectItem>
+                  <SelectItem value="PENDING">Pendiente</SelectItem>
+                  <SelectItem value="IN_PROGRESS">En Preparación</SelectItem>
+                  <SelectItem value="COMPLETADO">Completado</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={paymentFilter} onValueChange={setPaymentFilter}>
@@ -286,17 +274,13 @@ function VentasContent() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos los métodos</SelectItem>
-                  <SelectItem value="cash">Efectivo</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                  <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="qr">QR</SelectItem>
+                  <SelectItem value="EFECTIVO">Efectivo</SelectItem>
+                  <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </CardContent>
         </Card>
-
-
 
         {/* Tabla de ventas */}
         <Card className="border-white/20 bg-white/5 backdrop-blur-md">
@@ -322,13 +306,14 @@ function VentasContent() {
                 <TableBody>
                   {filteredOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center text-white/50">
+                      <TableCell colSpan={8} className="text-center text-white/50">
                         No se encontraron ventas
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredOrders.map((order) => {
-                      const customerDisplay = order.customerIdentifier || order.customerName || "Sin nombre"
+                      const customerDisplay = order.customerIdentifier || "Cliente"
+                      const paymentMethod = (order as any).paymentMethod
                       return (
                         <TableRow key={`order-row-${order.id}`} className="border-b border-white/5 hover:bg-white/5">
                           <TableCell>
@@ -339,13 +324,13 @@ function VentasContent() {
                                   className="p-0 font-mono text-blue-950 hover:text-blue-100"
                                   onClick={() => setSelectedOrder(order)}
                                 >
-                                  {order.id.slice(0, 8)}
+                                  {order.orderNumber || order.id.slice(0, 8)}
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="max-w-2xl bg-black/95 text-white border-white/20">
                                 <DialogHeader>
                                   <DialogTitle className="text-white">
-                                    Detalle de Orden {selectedOrder?.id.slice(0, 8)}
+                                    Detalle de Orden {order.orderNumber || order.id.slice(0, 8)}
                                   </DialogTitle>
                                 </DialogHeader>
                                 {selectedOrder && (
@@ -354,23 +339,23 @@ function VentasContent() {
                                       <div>
                                         <p className="text-sm text-white/60">Cliente</p>
                                         <p className="font-semibold text-white">
-                                          {selectedOrder.customerIdentifier || selectedOrder.customerName}
+                                          {selectedOrder.customerIdentifier || "Cliente"}
                                         </p>
                                       </div>
 
                                       <div>
                                         <p className="text-sm text-white/60">Método de Pago</p>
                                         <p className="font-semibold text-white">
-                                          {getPaymentMethodLabel(selectedOrder.paymentMethod)}
+                                          {getPaymentMethodLabel((selectedOrder as any).paymentMethod)}
                                         </p>
                                       </div>
                                       <div>
                                         <p className="text-sm text-white/60">Caja</p>
-                                        <p className="font-semibold text-white">{selectedOrder.cashier || "N/A"}</p>
+                                        <p className="font-semibold text-white">{selectedOrder.createdBy?.userName || "N/A"}</p>
                                       </div>
                                       <div>
                                         <p className="text-sm text-white/60">Estado</p>
-                                        <StatusPill status={normalizeStatus(selectedOrder.status)} />
+                                        <StatusPill status={normalizeStatus(selectedOrder.status.name)} />
                                       </div>
                                       <div>
                                         <p className="text-sm text-white/60">Fecha</p>
@@ -379,11 +364,11 @@ function VentasContent() {
                                         </p>
                                       </div>
                                     </div>
-                                    {(selectedOrder.notes || selectedOrder.specialRequests) && (
+                                    {selectedOrder.observations && (
                                       <div>
-                                        <p className="text-sm text-white/60">Notas</p>
+                                        <p className="text-sm text-white/60">Observaciones</p>
                                         <p className="font-semibold text-white">
-                                          {selectedOrder.notes || selectedOrder.specialRequests}
+                                          {selectedOrder.observations}
                                         </p>
                                       </div>
                                     )}
@@ -391,25 +376,17 @@ function VentasContent() {
                                       <p className="mb-2 text-sm font-semibold text-white/70">Productos</p>
                                       <div className="space-y-2">
                                         {selectedOrder.items.map((item, idx) => {
-                                          const itemName =
-                                            item.name || item.productName || item.menuItem?.name || "Producto"
-                                          const itemPrice = item.price || item.menuItem?.price || 0
                                           return (
                                             <div
-                                              key={`order-detail-item-${item.id || item.productId}-${idx}`}
+                                              key={`order-detail-item-${item.id}-${idx}`}
                                               className="flex items-center justify-between rounded-lg border border-white/10 bg-gradient-blue p-3"
                                             >
                                               <div>
-                                                <p className="font-medium text-white">{itemName}</p>
-                                                <p className="text-sm text-white/60">Cantidad: {item.quantity}</p>
-                                                {item.customizations && item.customizations.length > 0 && (
-                                                  <p className="text-xs text-white/50">
-                                                    {item.customizations.join(", ")}
-                                                  </p>
-                                                )}
+                                                <p className="font-medium text-white">{item.product.name}</p>
+                                                <p className="text-sm text-white/60">Cantidad: {item.qty}</p>
                                               </div>
                                               <p className="font-bold text-white">
-                                                {formatCurrency(itemPrice * item.quantity)}
+                                                {formatCurrency(item.unitPrice * item.qty)}
                                               </p>
                                             </div>
                                           )
@@ -419,7 +396,7 @@ function VentasContent() {
                                     <div className="flex items-center justify-between border-t border-white/20 pt-4">
                                       <p className="text-lg font-semibold text-white">Total</p>
                                       <p className="text-2xl font-bold text-white">
-                                        {formatCurrency(selectedOrder.total)}
+                                        {formatCurrency(selectedOrder.totalAmount)}
                                       </p>
                                     </div>
                                   </div>
@@ -430,18 +407,18 @@ function VentasContent() {
                           <TableCell className="font-medium text-white">{customerDisplay}</TableCell>
                           <TableCell>
                             <span className="text-sm text-white/60">
-                              {order.items.reduce((sum, item) => sum + item.quantity, 0)} items
+                              {order.items.reduce((sum, item) => sum + item.qty, 0)} items
                             </span>
                           </TableCell>
-                          <TableCell className="font-bold text-blue-200">{formatCurrency(order.total)}</TableCell>
+                          <TableCell className="font-bold text-blue-200">{formatCurrency(order.totalAmount)}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="border-[#1E2C6D]/30 bg-gradient-blue text-white">
-                              {getPaymentMethodLabel(order.paymentMethod)}
+                              {getPaymentMethodLabel(paymentMethod)}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-sm text-white/70">{order.cashier || "N/A"}</TableCell>
+                          <TableCell className="text-sm text-white/70">{order.createdBy?.userName || "N/A"}</TableCell>
                           <TableCell>
-                            <StatusPill status={normalizeStatus(order.status)} />
+                            <StatusPill status={normalizeStatus(order.status.name)} />
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-1 text-sm text-white/60">
@@ -529,7 +506,7 @@ function VentasContent() {
                 </TableHeader>
                 <TableBody>
                   {eventComparison.map((event, index) => {
-                    const avgTicket = event.totalSales / event.totalOrders
+                    const avgTicket = event.totalOrders > 0 ? event.totalSales / event.totalOrders : 0
                     const trend = index % 2 === 0
                     return (
                       <TableRow
