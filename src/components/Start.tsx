@@ -5,20 +5,20 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@/Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, Truck, ShoppingBag, BarChart3, Home } from "lucide-react"
+import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, Truck, ShoppingBag, BarChart3, Home, CreditCard, TrendingUp, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CountdownTimer } from "./CountDownTimer"
 import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
-  { name: "Inicio", icon: Home, path: "/inicio" },
-  { name: "Estadísticas", icon: BarChart3, path: "/statistics" },
-  { name: "Caja", icon: Receipt, path: "/cashier" },
-  { name: "Cocina", icon: ChefHat, path: "/kitchen" },
-  { name: "Entrega", icon: Truck, path: "/entrega" },
-  { name: "Ventas", icon: ShoppingBag, path: "/ventas" },
-  { name: "Eventos", icon: Calendar, path: "/eventos" },
-  { name: "Inventario", icon: Package, path: "/inventario" },
+    { name: "Inicio", icon: Home, label: "Inicio", href: "/" },
+    { name: "Estadísticas",icon: BarChart3, label: "Estadísticas", href: "/statistics" },
+    { name: "Caja",icon: CreditCard, label: "Caja", href: "/cashier" },
+    { name: "Cocina",icon: ChefHat, label: "Cocina", href: "/kitchen" },
+    { name: "Inventario",icon: Package, label: "Inventario", href: "/inventory" },
+    { name: "Ventas",icon: TrendingUp, label: "Ventas", href: "/sales" },
+    { name: "Eventos",icon: Calendar, label: "Eventos", href: "/create-event" },
+    { name: "Usuarios",icon: User, label: "Usuarios", href: "/create-users" },
 ]
 
 export default function Start() {
@@ -244,7 +244,7 @@ export default function Start() {
               return (
                 <button
                   key={item.name}
-                  onClick={() => router.push(item.path)}
+                  onClick={() => router.push(item.href)}
                   className="group relative overflow-hidden rounded-xl backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 hover:border-[#1E2C6D]/50 p-6 transition-all duration-300 hover:bg-gradient-to-br hover:from-[#1E2C6D]/20 hover:to-[#1E2C6D]/10 shadow-lg"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-[#1E2C6D] via-transparent to-transparent opacity-0 group-hover:opacity-10 transition-opacity" />
