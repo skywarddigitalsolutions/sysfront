@@ -37,7 +37,7 @@ export function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalP
           </div>
 
           {/* Items */}
-          <Card className="bg-white/5 border-white/20">
+          <Card className="">
             <CardHeader className="pb-3">
               <CardTitle className="text-base text-white">Artículos</CardTitle>
             </CardHeader>
@@ -49,27 +49,28 @@ export function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalP
                 >
                   <div className="flex-1">
                     <p className="font-medium text-white capitalize">{item.product.name}</p>
-                    <p className="text-sm text-white/60">Cantidad: {item.qty}</p>
+                    <p className="text-sm text-white/60">Cantidad: {Math.floor(Number(item.qty))}</p>
                   </div>
                   <div className="text-right ml-4">
                     <p className="text-white font-bold">${(Number(item.unitPrice) * Number(item.qty)).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
+              {/* Observaciones */}
+              {order.observations && (
+                <Card className="bg-orange-500/10 border-orange-500/30 my-2">
+                  <CardHeader>
+                    <CardTitle className="text-sm text-orange-400">Observaciones</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-white/80 text-sm">{order.observations}</p>
+                  </CardContent>
+                </Card>
+              )}
             </CardContent>
           </Card>
 
-          {/* Observaciones */}
-          {order.observations && (
-            <Card className="bg-orange-500/10 border-orange-500/30">
-              <CardHeader>
-                <CardTitle className="text-sm text-orange-400">Observaciones</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-white/80 text-sm">{order.observations}</p>
-              </CardContent>
-            </Card>
-          )}
+
 
           {/* Total */}
           <div className="bg-gradient-to-br from-black to-gray-700/50 border border-white/20 rounded-lg p-4">
@@ -81,7 +82,7 @@ export function OrderDetailsModal({ order, isOpen, onClose }: OrderDetailsModalP
         </div>
 
         <div className="flex justify-end gap-4 border-t border-white/10 mt-6 pt-6">
-          <Button onClick={onClose} variant="outline" className="border-white/20 text-white hover:bg-white/10">
+          <Button onClick={onClose} variant="outline" className="bg-gradient-blue border-white/20 text-white hover:bg-white/10">
             Cerrar
           </Button>
         </div>
