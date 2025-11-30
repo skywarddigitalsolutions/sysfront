@@ -10,12 +10,37 @@ export interface Event {
 }
 
 export interface EventStatistics {
-    totalRevenue: number;
-    totalInvestment: number;
-    topSellingItems: { [key: string]: number };
-    totalOrders: number;
-    totalSupplies: number;
-    totalProducts: number;
+    event: {
+        id: string;
+        name: string;
+        startDate: Date;
+        endDate: Date;
+        isClosed: boolean;
+    };
+    summary: {
+        totalOrders: number;
+        completedOrders: number;
+        cancelledOrders: number;
+        totalRevenue: number;
+        totalRefunds: number;
+        netRevenue: number;
+        salesByMethod: {
+            EFECTIVO: { total: number; net: number };
+            TRANSFERENCIA: { total: number; net: number };
+        };
+        totalInvestment: number;
+        totalSupplies: number;
+        totalProducts: number;
+    };
+    products: {
+        topSelling: Array<{ product: string; qtySold: number; revenue: number }>;
+        leastSelling: Array<{ product: string; qtySold: number; revenue: number }>;
+        topProfitable: Array<{ product: string; revenue: number; cost: number; profit: number; profitMargin: number }>;
+        leastProfitable: Array<{ product: string; revenue: number; cost: number; profit: number; profitMargin: number }>;
+        topRemaining: Array<{ product: string; initialQty: number; currentQty: number; sold: number; remaining: number; wastedPercentage: number }>;
+        leastRemaining: Array<{ product: string; initialQty: number; currentQty: number; sold: number; remaining: number; wastedPercentage: number }>;
+        mostWasted: Array<{ product: string; initialQty: number; currentQty: number; sold: number; remaining: number; wastedPercentage: number }>;
+    };
 }
 
 export interface EventUser {

@@ -1,14 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 import { useAuth } from "@/Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, BarChart3, Home, CreditCard, TrendingUp, User, ShoppingCart } from "lucide-react"
+import { ArrowUpRight, DollarSign, Package, ChefHat, Calendar, ArrowRight, Clock, BarChart3, CreditCard, TrendingUp, User, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CountdownTimer } from "./CountDownTimer"
-import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
   { name: "Estadísticas", icon: BarChart3, label: "Estadísticas", href: "/statistics" },
@@ -22,13 +22,11 @@ const navigationItems = [
 
 export default function Start() {
   const { user } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const [selectedEventId, setSelectedEventId] = useState<string>("")
-  const [itemFilter, setItemFilter] = useState("")
-  const [sortBy, setSortBy] = useState<"name" | "quantity" | "revenue">("quantity")
 
   const { data: events } = useEvents()
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedEventId, setSelectedEventId] = useState<string>("")
 
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) setSelectedEventId(events[0].id)
@@ -36,15 +34,11 @@ export default function Start() {
 
   const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
-  const profit = statistics ? statistics.summary.totalRevenue - statistics.summary.totalInvestment : 0
-
   const selectedEvent = events?.find((e) => e.id === selectedEventId)
   const nextEvent = events?.[0] || { name: "Próximo Evento", startDate: "2025-12-31T18:00:00", endDate: "2025-12-31T23:00:00", id: "", isActive: false, isClosed: false, createdAt: "" }
 
   useEffect(() => {
-    if (user) {
-      setIsLoading(false)
-    }
+    if (user) setIsLoading(false)
   }, [user])
 
   if (isLoading || !user) return null
@@ -165,7 +159,7 @@ export default function Start() {
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Efectivo</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Ventas - Efectivo</CardTitle>
                 <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
@@ -176,7 +170,7 @@ export default function Start() {
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-black/50 hover:border-black/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Transferencia</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Ventas - Transferencia</CardTitle>
                 <DollarSign className="h-5 w-5 text-white" />
               </CardHeader>
               <CardContent>
