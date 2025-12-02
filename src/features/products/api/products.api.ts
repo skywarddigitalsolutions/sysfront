@@ -1,5 +1,6 @@
 import { httpClient } from '@/lib/http/httpClient';
-import { EventProductInventory, ProductSupply } from '../types';
+import { ProductSupply } from '../types';
+import { EventProductInventory } from '../../inventory/types';
 
 export const productsApi = {
     getAvailableProducts: async (eventId: string) => {

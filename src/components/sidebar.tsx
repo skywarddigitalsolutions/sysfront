@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import {
   Home,
   BarChart3,
@@ -98,9 +99,11 @@ export function AppSidebar() {
             isCollapsed ? "justify-center flex-col gap-2" : "flex-row gap-3",
           )}
         >
-          <img
+          <Image
             src="/logo.png"
             alt="Logo"
+            width={48}
+            height={48}
             className={cn("transition-all duration-300", isCollapsed ? "w-8 h-8" : "w-12 h-12")}
           />
           {!isCollapsed && (

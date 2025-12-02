@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useState, useContext, useEffect, useRef } from 'react'
+import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react'
 import { User } from '@/lib/types'
 import { authService } from '@/services/auth/authService'
 import { canAccessRoute } from '@/lib/route-protection'
@@ -33,7 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   // Función para configurar el refresh automático de tokens
-  const setupTokenRefresh = (token: string) => {
+  const setupTokenRefresh = useCallback(() => {
     // Limpiar intervalo anterior si existe
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current)
@@ -50,9 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem('token', response.token)
 
           // Actualizar usuario en el estado
-          if (user) {
-            setUser({ ...user, token: response.token })
-          }
+          setUser(prev => prev ? { ...prev, token: response.token } : null)
 
           console.log('Token renovado exitosamente')
         }
@@ -63,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.location.href = '/login'
       }
     }, 30 * 60 * 1000) // 30 minutos
-  }
+  }, [])
 
   // Restaurar sesión al montar el componente
   useEffect(() => {
@@ -86,7 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Configurar refresh automático
-          setupTokenRefresh(response.token)
+          setupTokenRefresh()
         } catch (error) {
           console.error('Token inválido o expirado:', error)
           // Token inválido, limpiar sesión
@@ -105,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearInterval(refreshIntervalRef.current)
       }
     }
-  }, [])
+  }, [setupTokenRefresh])
 
   const login = async (username: string, password: string): Promise<boolean> => {
     try {
@@ -150,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(userData)
 
       // Configurar refresh automático de tokens
-      setupTokenRefresh(token)
+      setupTokenRefresh()
 
       return true
     } catch (error) {

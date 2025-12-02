@@ -5,31 +5,27 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { useAuth } from "../../../Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip } from "recharts"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip as RechartsTooltip, PieChart, Pie, Cell, Legend } from "recharts"
 import {
   ArrowDownRight,
   ArrowUpRight,
   DollarSign,
   Package,
   ShoppingCart,
-  TrendingUp,
-  AlertCircle,
-  RotateCcw,
   ArrowDownLeftIcon,
   ShoppingBagIcon,
+  Trash2
 } from "lucide-react"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
-export default function statistics() {
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+
+export default function Statistics() {
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const [selectedEventId, setSelectedEventId] = useState<string>("")
-  const [sortBy, setSortBy] = useState<
-    "quantityDesc" | "quantityAsc" | "nameAsc" | "nameDesc"
-  >("quantityDesc")
-  const [filterSearch, setFilterSearch] = useState<string>("")
 
   const { data: events } = useEvents()
 
@@ -39,57 +35,36 @@ export default function statistics() {
 
   const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
-  const filteredAndSortedItems = (statistics && statistics.topSellingItems)
-    ? Object.entries(statistics.topSellingItems)
-      .filter(([name]) => name.toLowerCase().includes(filterSearch.toLowerCase()))
-      .map(([name, quantity]) => ({ name, quantity: quantity as number }))
-      .sort((a, b) => {
-        switch (sortBy) {
-          case "quantityDesc":
-            return b.quantity - a.quantity
-          case "quantityAsc":
-            return a.quantity - b.quantity
-          case "nameAsc":
-            return a.name.localeCompare(b.name)
-          case "nameDesc":
-            return b.name.localeCompare(a.name)
-          default:
-            return 0
-        }
-      })
-      .slice(0, 5)
-    : []
-
-  const chartData = filteredAndSortedItems
-
-  const profit = statistics ? statistics.totalRevenue - statistics.totalInvestment : 0
-  const profitPercentage =
-    statistics && statistics.totalInvestment > 0 ? ((profit / statistics.totalInvestment) * 100).toFixed(2) : "0.00"
-
-  const itemsRemaining = (statistics && statistics.topSellingItems)
-    ? Object.values(statistics.topSellingItems).reduce((a, b) => (a as number) + (b as number), 0)
-    : 0
-
-  const stockAlerts = statistics
-    ? [
-      { product: "Producto A", current: 5, minimum: 10 },
-      { product: "Producto B", current: 3, minimum: 8 },
-    ]
-    : []
-
   useEffect(() => {
     if (!user && !isLoading) {
       router.push("/login")
     } else {
       setIsLoading(false)
     }
-  }, [user, isLoading])
+  }, [user, isLoading, router])
 
   if (isLoading || !user) return null
 
+  // Data preparation for charts
+  const salesByMethodData = statistics ? Object.entries(statistics.summary.salesByMethod).map(([method, data]) => ({
+    name: method,
+    value: data.net
+  })) : [];
+
+  const topSellingData = statistics?.products.topSelling.slice(0, 5) || [];
+
+  console.log('topSellingData --> ', topSellingData)
+
+  const profitabilityData = statistics?.products.topProfitable.slice(0, 5).map(item => ({
+    name: item.product,
+    revenue: item.revenue,
+    cost: item.cost,
+    profit: item.profit
+  })) || [];
+
   return (
     <ProtectedRoute requiredRoles={['ADMIN']}>
-      <main className="flex-1 p-6 space-y-8 bg-background min-h-screen">
+      <main className="flex-1 p-6 space-y-8 bg-background min-h-screen pb-20">
         <div className="space-y-2">
           <h1 className="text-4xl font-bold">
             Estadísticas del Evento
@@ -97,32 +72,21 @@ export default function statistics() {
         </div>
 
         <div className="backdrop-blur-lg bg-gradient-blue border border-white/20 rounded-xl p-4 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between transition-all duration-300">
-
-          {/* IZQUIERDA: Nombre del Evento y Fecha */}
           <div className="space-y-1 mb-4 md:mb-0">
             <h3 className="text-3xl font-bold text-blue-100 flex items-center">
               {events?.find((e) => e.id === selectedEventId)?.name}
             </h3>
             <p className="text-sm text-gray-200 ">
-              Fecha: 2 de Octubre
+              {statistics?.event.startDate && new Date(statistics.event.startDate).toLocaleDateString()}
             </p>
           </div>
 
-          {/* DERECHA: Selector de Evento Moderno */}
           <div className="flex items-center space-x-3">
-
             <label className="text-sm font-medium text-gray-400 hidden sm:block">Cambiar Evento:</label>
-
-            {/* El Select se integra con la estética de Glassmorphism */}
             <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-
-              {/* El Trigger parece un botón de acción estilizado */}
-              <SelectTrigger className="w-full md:w-[250px] bg-white/10 border-white/30 text-white 
-                                              hover:bg-white/20 transition-colors duration-200">
+              <SelectTrigger className="w-full md:w-[250px] bg-white/10 border-white/30 text-white hover:bg-white/20 transition-colors duration-200">
                 <SelectValue placeholder="Seleccionar otro evento..." />
               </SelectTrigger>
-
-              {/* El contenido del Select mantiene el tema Oscuro */}
               <SelectContent className="bg-[var(--color-brand-black)] border-white/20">
                 {events?.map((event) => (
                   <SelectItem
@@ -140,213 +104,225 @@ export default function statistics() {
 
         {statistics && (
           <>
+            {/* Summary Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-              {/* Total Pedidos */}
               <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-gray-500/30 hover:border-gray-500/50 transition-all shadow-xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Total Pedidos</CardTitle>
                   <ShoppingCart className="h-5 w-5 text-gray-700" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{statistics.totalOrders}</div>
-                  <p className="text-xs text-muted-foreground mt-1">+{statistics.pendingOrders} pendientes</p>
-                </CardContent>
-              </Card>
-
-              {/* Inversión */}
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Inversión</CardTitle>
-                  <ArrowDownLeftIcon className="h-5 w-5 text-primary" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics?.totalInvestment?.toFixed(0)}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Costo de productos</p>
-                </CardContent>
-              </Card>
-
-              {/* Ingresos Totales */}
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos</CardTitle>
-                  <DollarSign className="h-5 w-5 text-orange-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics?.totalRevenue?.toFixed(2) || "0.00"}</div>
+                  <div className="text-3xl font-bold text-foreground">{statistics.summary.totalOrders}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Totales
+                    {statistics.summary.completedOrders} completados / {statistics.summary.cancelledOrders} cancelados
                   </p>
                 </CardContent>
               </Card>
 
-              {/* Ticket promedio */}
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Inversión Total</CardTitle>
+                  <ArrowDownLeftIcon className="h-5 w-5 text-primary" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">${statistics.summary.totalInvestment.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{statistics.summary.totalProducts} productos / {statistics.summary.totalSupplies} insumos</p>
+                </CardContent>
+              </Card>
+
+              <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Ingresos Netos</CardTitle>
+                  <DollarSign className="h-5 w-5 text-orange-400" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold text-foreground">${statistics.summary.netRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    -${statistics.summary.totalRefunds.toLocaleString(undefined, { maximumFractionDigits: 0 })} en reembolsos
+                  </p>
+                </CardContent>
+              </Card>
+
               <Card className="backdrop-blur-xl bg-gradient-to-br from-sky-500/20 to-sky-500/5 border border-sky-500/30 hover:border-sky-500/5 transition-all shadow-xl">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Ticket Promedio</CardTitle>
                   <ShoppingBagIcon className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">${statistics?.averageOrderValue?.toFixed(2) || "0.00"}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Por pedido</p>
+                  <div className="text-3xl font-bold text-foreground">
+                    ${statistics.summary.completedOrders > 0
+                      ? (statistics.summary.netRevenue / statistics.summary.completedOrders).toLocaleString(undefined, { maximumFractionDigits: 0 })
+                      : "0"}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Por pedido completado</p>
                 </CardContent>
               </Card>
 
-              {/* Ganancia */}
               <Card
                 className={`backdrop-blur-xl bg-gradient-to-br from-green-500/20 to-green-500/5 border border-green-500/30 hover:border-green-500/50 transition-all shadow-xl`}
               >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">Ganancia</CardTitle>
-                  {profit >= 0 ? (
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Ganancia Neta</CardTitle>
+                  {(statistics.summary.netRevenue - statistics.summary.totalInvestment) >= 0 ? (
                     <ArrowUpRight className="h-5 w-5 text-emerald-500" />
                   ) : (
                     <ArrowDownRight className="h-5 w-5 text-red-500" />
                   )}
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${profit >= 0 ? "text-emerald-500" : "text-red-500"}`}>
-                    ${profit.toFixed(0)}
+                  <div className={`text-3xl font-bold ${(statistics.summary.netRevenue - statistics.summary.totalInvestment) >= 0 ? "text-emerald-500" : "text-red-500"}`}>
+                    ${(statistics.summary.netRevenue - statistics.summary.totalInvestment).toLocaleString()}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {profit >= 0 ? "+" : ""}
-                    {profitPercentage}% margen
+                    Ingresos - Inversión
                   </p>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Charts Section */}
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* Gráfico Top Items */}
+
+              {/* Sales by Method */}
               <Card className="border border-white-1 bg-card hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-lg">Top Items Vendidos</CardTitle>
+                  <CardTitle className="text-lg">Ventas por Método de Pago</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-col items-center justify-center">
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={salesByMethodData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {salesByMethodData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip
+                          contentStyle={{ background: "rgba(0,0,0,0.8)", border: "1px solid #ffffff", borderRadius: "10px" }}
+                          formatter={(value: number) => [`$${value.toLocaleString()}`, 'Monto']}
+                        />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 w-full mt-4">
+                    {Object.entries(statistics.summary.salesByMethod).map(([method, data]) => (
+                      <div key={method} className="flex flex-col items-center p-2 bg-white/5 rounded-lg">
+                        <span className="text-sm font-medium text-muted-foreground">{method}</span>
+                        <span className="text-lg font-bold">${data.net.toLocaleString()}</span>
+                        <span className="text-xs text-muted-foreground">{data.completed.count} ventas</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Top Selling Products */}
+              <Card className="border border-white-1 bg-card hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="text-lg">Top 5 Productos Más Vendidos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                      <defs>
-                        <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor="#1E2C6D" />
-                          <stop offset="50%" stopColor="#2A3D8F" />
-                          <stop offset="100%" stopColor="#1E2C6D" />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="name" stroke="#ffffff" />
-                      <YAxis stroke="#ffffff" />
+                  <ResponsiveContainer width="100%" height={350}>
+                    <BarChart data={topSellingData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                      <XAxis type="number" stroke="#ffffff" />
+                      <YAxis dataKey="product" type="category" width={100} stroke="#ffffff" fontSize={12} />
                       <RechartsTooltip
-                        contentStyle={{ background: "linear-gradient(135deg, #1E2C6D 0%, #2A3D8F 50%, #1E2C6D 100%)", border: "1px solid #ffffff", borderRadius: "20px", backdropFilter: "blur(10px)" }}
-                        cursor={{ fill: "rgba(29, 44, 109, 0.1)" }}
-                        labelStyle={{ color: "#758FC9" }}
+                        contentStyle={{ background: "rgba(29, 44, 109, 0.9)", border: "1px solid #ffffff", borderRadius: "10px" }}
+                        cursor={{ fill: "rgba(255, 255, 255, 0.1)" }}
+                        formatter={(value: number, name: string) => [name === 'revenue' ? `$${value.toLocaleString()}` : value, name === 'revenue' ? 'Ingresos' : 'Cantidad']}
                       />
-                      <Bar dataKey="quantity" fill="url(#barGradient)" name="Cantidad Vendida" radius={[8, 8, 0, 0]} />
+                      <Bar dataKey="qtySold" fill="#00C49F" name="Cantidad" radius={[0, 4, 4, 0]} barSize={20} />
+                      <Bar dataKey="revenue" fill="#8884d8" name="Ingresos" radius={[0, 4, 4, 0]} barSize={20} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* Profitability Chart */}
+            <Card className="border border-white-1 bg-card hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <CardTitle className="text-lg">Rentabilidad por Producto (Top 5)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={profitabilityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                    <XAxis dataKey="name" stroke="#ffffff" />
+                    <YAxis stroke="#ffffff" />
+                    <RechartsTooltip
+                      contentStyle={{ background: "rgba(0,0,0,0.8)", border: "1px solid #ffffff", borderRadius: "10px" }}
+                      formatter={(value: number) => `$${value.toLocaleString()}`}
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#8884d8" name="Ingresos" />
+                    <Bar dataKey="cost" fill="#ff7300" name="Costo" />
+                    <Bar dataKey="profit" fill="#82ca9d" name="Ganancia" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
 
 
-              {/* Tabla Items con Filtro y Ordenamiento */}
-              <Card className="border border-white-1 bg-card hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <CardTitle className="text-lg">Ítems Vendidos - Filtro y Ordenamiento</CardTitle>
+            {/* Inventory & Waste Section */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Top Remaining */}
+              <Card className="border border-white-1 bg-gradient-to-br from-card to-card/50 hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-lg">Mayor Sobrante (Unidades)</CardTitle>
+                  <Package className="h-5 w-5 text-blue-500" />
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex gap-2 flex-wrap">
-                    <input
-                      type="text"
-                      placeholder="Buscar ítem..."
-                      value={filterSearch}
-                      onChange={(e) => setFilterSearch(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-blue-200/10 border border-white-1 rounded-md text-sm text-foreground placeholder-muted-foreground"
-                    />
-                    <select
-                      value={sortBy}
-                      onChange={(e) =>
-                        setSortBy(
-                          e.target.value as
-                          | "quantityDesc"
-                          | "quantityAsc"
-                          | "nameAsc"
-                          | "nameDesc"
-                        )
-                      }
-                      className="px-3 py-2 bg-blue-200/10 rounded-md text-sm text-foreground"
-                    >
-                      <option className="bg-gray-700 text-white" value="quantityDesc">Cantidad (Mayor a Menor)</option>
-                      <option className="bg-gray-700 text-white" value="quantityAsc">Cantidad (Menor a Mayor)</option>
-                      <option className="bg-gray-700 text-white" value="nameAsc">Nombre (A-Z)</option>
-                      <option className="bg-gray-700 text-white" value="nameDesc">Nombre (Z-A)</option>
-                    </select>
-
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    {statistics.products.topRemaining.slice(0, 5).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div>
+                          <p className="font-medium">{item.product}</p>
+                          <p className="text-xs text-muted-foreground">Inicial: {item.initialQty} | Vendido: {item.sold}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-blue-400">{item.remaining}</span>
+                          <p className="text-xs text-muted-foreground">sobrantes</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                </CardContent>
+              </Card>
 
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
-                    {filteredAndSortedItems.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between p-3 bg-gradient-blue rounded-lg border border-white-1 hover:border-primary transition-colors"
-                      >
-                        <span className="text-sm font-medium text-foreground">{item.name}</span>
-                        <span className="text-sm font-bold text-blue-900 bg-white px-3 py-1 rounded-full">
-                          {item.quantity} vendidos
-                        </span>
+              {/* Most Wasted */}
+              <Card className="border border-white-1 bg-gradient-to-br from-card to-card/50 hover:shadow-lg transition-shadow">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-lg">Mayor Desperdicio (%)</CardTitle>
+                  <Trash2 className="h-5 w-5 text-red-500" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    {statistics.products.mostWasted.slice(0, 5).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div>
+                          <p className="font-medium">{item.product}</p>
+                          <p className="text-xs text-muted-foreground">Inicial: {item.initialQty} | Restante: {item.remaining}</p>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-lg font-bold text-red-400">{item.wastedPercentage.toFixed(1)}%</span>
+                          <p className="text-xs text-muted-foreground">desperdicio</p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             </div>
-
-            <div className="grid lg:grid-cols-2 gap-6">
-              {/* Sobrante del Evento */}
-              <Card className="border border-white-1 bg-gradient-to-br from-card to-card/50 hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-lg">Sobrante del Evento</CardTitle>
-                  <RotateCcw className="h-5 w-5 text-blue-500" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gradient-blue rounded-lg border border-primary/20">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Ítems sin vender</p>
-                      <p className="text-3xl font-bold text-foreground mt-1">{itemsRemaining}</p>
-                    </div>
-                    <Package className="h-12 w-12 text-blue-200" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Alertas de Stock */}
-              <Card className="border border-white-1 bg-gradient-to-br from-card to-card/50 hover:shadow-lg transition-shadow">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                  <CardTitle className="text-lg">Falta de Stock</CardTitle>
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {stockAlerts.length > 0 ? (
-                      stockAlerts.map((alert, idx) => (
-                        <div key={idx} className="p-3 rounded-lg border border-white/20">
-                          <div className="flex items-center justify-between mb-2">
-                            <p className="text-sm font-medium text-foreground">{alert.product}</p>
-                            <span className="text-xs bg-red-400 text-red-900 px-2 py-1 rounded">¡Bajo!</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Actual: <span className="text-red-400 font-bold">{alert.current}</span> / Mínimo:{" "}
-                            <span className="font-bold text-green-400">{alert.minimum}</span>
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-emerald-950/20 rounded-lg border border-emerald-500/30 text-center">
-                        <p className="text-sm text-muted-foreground">Todo el inventario está bien</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-            </div>
-
           </>
         )}
       </main>

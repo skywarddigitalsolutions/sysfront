@@ -71,7 +71,7 @@ function VentasContent() {
 
       const matchesStatus = statusFilter === "all" || order.status.name === statusFilter
       // Payment method might not be available in the current type definition, handling gracefully
-      const paymentMethod = (order as any).paymentMethod || "unknown"
+      const paymentMethod = order.paymentMethod || "unknown"
       const matchesPayment = paymentFilter === "all" || paymentMethod === paymentFilter
 
       return matchesSearch && matchesStatus && matchesPayment
@@ -86,7 +86,7 @@ function VentasContent() {
 
     const paymentMethodBreakdown = filteredOrders.reduce(
       (acc, order) => {
-        const method = (order as any).paymentMethod || "unknown"
+        const method = order.paymentMethod || "unknown"
         acc[method] = (acc[method] || 0) + Number(order.totalAmount)
         return acc
       },
@@ -313,7 +313,7 @@ function VentasContent() {
                   ) : (
                     filteredOrders.map((order) => {
                       const customerDisplay = order.customerIdentifier || "Cliente"
-                      const paymentMethod = (order as any).paymentMethod
+                      const paymentMethod = order.paymentMethod
                       return (
                         <TableRow key={`order-row-${order.id}`} className="border-b border-white/5 hover:bg-white/5">
                           <TableCell>
@@ -346,7 +346,7 @@ function VentasContent() {
                                       <div>
                                         <p className="text-sm text-white/60">Método de Pago</p>
                                         <p className="font-semibold text-white">
-                                          {getPaymentMethodLabel((selectedOrder as any).paymentMethod)}
+                                          {getPaymentMethodLabel(selectedOrder.paymentMethod)}
                                         </p>
                                       </div>
                                       <div>

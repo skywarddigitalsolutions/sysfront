@@ -8,6 +8,7 @@ import { useCreateOrder } from "@/features/orders/hooks/useCreateOrder"
 import { useAvailableProducts } from "@/features/inventory/hooks/useInventory"
 import { useProductRecipe } from "@/features/products/hooks/useProducts"
 import { PaymentMethod } from "@/features/orders/types"
+import { EventProductInventory } from "@/features/inventory/types"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 
@@ -26,14 +27,14 @@ interface OrderSheetProps {
   userId: string
 }
 
-export function OrderSheet({ isOpen, onClose, eventId, userId }: OrderSheetProps) {
+export function OrderSheet({ isOpen, onClose, eventId }: OrderSheetProps) {
   const [items, setItems] = useState<OrderItem[]>([])
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("EFECTIVO")
 
   const { mutate: createOrder, isPending: isCreating } = useCreateOrder(eventId)
   const { data: products, isLoading: isLoadingProducts } = useAvailableProducts(eventId)
 
-  const handleAddItem = (product: any) => {
+  const handleAddItem = (product: EventProductInventory) => {
     const existingItem = items.find((i) => i.id === product.productId)
     if (existingItem) {
       setItems(items.map((i) => (i.id === product.productId ? { ...i, quantity: i.quantity + 1 } : i)))

@@ -38,4 +38,5 @@ export interface Order {
     createdAt: string;
     customerIdentifier?: string;
     observations?: string;
+    paymentMethod?: PaymentMethod;
 }

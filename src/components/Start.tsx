@@ -1,14 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 import { useAuth } from "@/Context/AuthContext"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowUpRight, DollarSign, Package, ChefHat, Receipt, Calendar, ArrowRight, Clock, BarChart3, Home, CreditCard, TrendingUp, User, ShoppingCart } from "lucide-react"
+import { ArrowUpRight, DollarSign, Package, ChefHat, Calendar, ArrowRight, Clock, BarChart3, CreditCard, TrendingUp, User, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { CountdownTimer } from "./CountDownTimer"
-import { useEvents, useEventStats } from "@/features/events/hooks/useEvents"
 
 const navigationItems = [
   { name: "Estadísticas", icon: BarChart3, label: "Estadísticas", href: "/statistics" },
@@ -22,13 +22,11 @@ const navigationItems = [
 
 export default function Start() {
   const { user } = useAuth()
-  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const [selectedEventId, setSelectedEventId] = useState<string>("")
-  const [itemFilter, setItemFilter] = useState("")
-  const [sortBy, setSortBy] = useState<"name" | "quantity" | "revenue">("quantity")
 
   const { data: events } = useEvents()
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedEventId, setSelectedEventId] = useState<string>("")
 
   useEffect(() => {
     if (events && events.length > 0 && !selectedEventId) setSelectedEventId(events[0].id)
@@ -36,15 +34,11 @@ export default function Start() {
 
   const { data: statistics } = useEventStats(selectedEventId, !!selectedEventId)
 
-  const profit = statistics ? statistics.summary.totalRevenue - statistics.summary.totalInvestment : 0
-
   const selectedEvent = events?.find((e) => e.id === selectedEventId)
   const nextEvent = events?.[0] || { name: "Próximo Evento", startDate: "2025-12-31T18:00:00", endDate: "2025-12-31T23:00:00", id: "", isActive: false, isClosed: false, createdAt: "" }
 
   useEffect(() => {
-    if (user) {
-      setIsLoading(false)
-    }
+    if (user) setIsLoading(false)
   }, [user])
 
   if (isLoading || !user) return null
@@ -103,7 +97,7 @@ export default function Start() {
               <div className="space-y-4">
                 <div>
                   <p className="text-white/60 text-sm mb-1">Inversión Total</p>
-                  <p className="text-3xl font-bold text-white">${statistics?.summary?.totalInvestment?.toFixed(2) || "0.00"}</p>
+                  <p className="text-3xl font-bold text-white">${statistics?.summary?.totalInvestment?.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0.00"}</p>
                 </div>
 
                 <div className="h-px bg-white/20" />
@@ -159,7 +153,7 @@ export default function Start() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${statistics?.summary?.netRevenue >= 0 ? "text-green-400" : "text-green-400"}`}>
-                  ${statistics?.summary?.totalRevenue.toFixed(0)}
+                  ${statistics?.summary?.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
                 <p className="text-xs text-white/60 mt-1">Ganancia neta</p>
               </CardContent>
@@ -167,29 +161,29 @@ export default function Start() {
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1E2C6D]/30 to-[#1E2C6D]/10 border border-[#1E2C6D]/50 hover:border-[#1E2C6D]/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Efectivo</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Ventas - Efectivo</CardTitle>
                 <DollarSign className="h-5 w-5 text-[#1E2C6D]" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-500">${statistics?.summary?.salesByMethod?.EFECTIVO.net || "0"}</div>
+                <div className="text-2xl font-bold text-blue-500">${statistics?.summary?.salesByMethod?.EFECTIVO.net.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
                 <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-black to-gray-700/50 border border-black/50 hover:border-black/70 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Transferencia</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Ventas - Transferencia</CardTitle>
                 <DollarSign className="h-5 w-5 text-white" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-white">${statistics?.summary?.salesByMethod?.TRANSFERENCIA.net || "0"}</div>
+                <div className="text-2xl font-bold text-white">${statistics?.summary?.salesByMethod?.TRANSFERENCIA.net.toLocaleString(undefined, { maximumFractionDigits: 0 }) || "0"}</div>
                 <p className="text-xs text-white/60 mt-1">Finalizadas</p>
               </CardContent>
             </Card>
 
             <Card className="backdrop-blur-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 border border-orange-500/30 hover:border-orange-500/50 transition-all shadow-xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-white/80">Ordenes - Totales</CardTitle>
+                <CardTitle className="text-sm font-medium text-white/80">Total de pedidos</CardTitle>
                 <ShoppingCart className="h-5 w-5 text-orange-400" />
               </CardHeader>
               <CardContent>

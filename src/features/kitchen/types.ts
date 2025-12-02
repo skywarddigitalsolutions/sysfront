@@ -4,7 +4,9 @@
 export type { Order, OrderItem, OrderStatus } from '../orders/types';
 
 // Kitchen-specific interfaces can be added here if needed
-export interface KitchenOrderWithRecipe extends import('../orders/types').Order {
+import { Order } from '../orders/types';
+
+export interface KitchenOrderWithRecipe extends Order {
     items: Array<import('../orders/types').OrderItem & {
         recipe?: Array<{
             supply: {
