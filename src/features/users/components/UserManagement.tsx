@@ -167,9 +167,9 @@ export default function UserManagement() {
     return (
         <div className="min-h-screen bg-black text-white p-6">
             {/* Header con estadísticas */}
-            <div className="mb-8">
+            <div className="mb-8" >
                 <div className="flex items-center justify-between mb-6">
-                    <div>
+                    <div className="mb-4">
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
                             Gestión de Usuarios
                         </h1>
@@ -259,8 +259,8 @@ export default function UserManagement() {
                 </div>
 
                 {/* Cards de estadísticas */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6">
+                <div className="flex flex-col md:flex-row gap-4 justify-between mb-4">
+                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6 w-full">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-white/60 text-sm">Total Usuarios</p>
@@ -272,7 +272,7 @@ export default function UserManagement() {
                         </div>
                     </Card>
 
-                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6">
+                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6 w-full">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-white/60 text-sm">Activos</p>
@@ -284,7 +284,7 @@ export default function UserManagement() {
                         </div>
                     </Card>
 
-                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6">
+                    <Card className="bg-white/5 border-white/20 backdrop-blur-xl p-6 w-full">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-white/60 text-sm">Inactivos</p>

@@ -49,6 +49,8 @@ export default function Start() {
 
   if (isLoading || !user) return null
 
+  console.log(statistics?.summary?.totalInvestment?.toFixed(0))
+
   return (
     <main className="flex flex-col min-h-screen bg-black">
       <div className="flex-1 p-4 md:p-6 lg:p-8 space-y-6">

@@ -12,9 +12,10 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Package, Plus, Edit, Trash2, AlertTriangle, Box, Layers, ChevronLeft, ChevronRight, X, Upload } from "lucide-react"
+import { Package, Plus, Edit, Trash2, AlertTriangle, Box, Layers, ChevronLeft, ChevronRight, X, Upload, DollarSign, TrendingUp, BarChart3, Scale, Utensils } from "lucide-react"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog"
+import { cn } from "@/lib/utils"
 
 import { useEvents } from "@/features/events/hooks/useEvents"
 import { useEventProducts, useEventSupplies, useInventoryMutations } from "@/features/inventory/hooks/useInventory"
@@ -331,68 +332,83 @@ function InventoryContent() {
   }
 
   return (
-    <main className="flex-1 p-6 space-y-6 bg-background min-h-screen">
+    <main className="flex-1 p-6 space-y-8 bg-black min-h-screen">
       {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-4xl font-bold">Gestión de Inventario</h1>
-        <p className="text-muted-foreground">
-          Administra el inventario por evento y el catálogo de insumos y productos
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-white/10 pb-6">
+        <div className="space-y-1">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+            Gestión de Inventario
+          </h1>
+          <p className="text-white/60">
+            Administra el inventario por evento y el catálogo de insumos y productos
+          </p>
+        </div>
+
+        {/* Event Selector */}
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 p-2 rounded-lg backdrop-blur-sm">
+          <Label htmlFor="event-select" className="text-sm font-medium text-white/80 pl-2">
+            Evento:
+          </Label>
+          <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+            <SelectTrigger id="event-select" className="w-[250px] bg-black/50 border-white/10 text-white focus:ring-offset-0 focus:ring-0">
+              <SelectValue placeholder="Selecciona un evento..." />
+            </SelectTrigger>
+            <SelectContent className="bg-black border-white/20 text-white">
+              {events.map((event) => (
+                <SelectItem key={event.id} value={event.id} className="focus:bg-white/10 focus:text-white">
+                  {event.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Event Selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-4">
-            <Label htmlFor="event-select" className="text-sm font-medium whitespace-nowrap">
-              Seleccionar Evento:
-            </Label>
-            <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-              <SelectTrigger id="event-select" className="w-[300px]">
-                <SelectValue placeholder="Selecciona un evento..." />
-              </SelectTrigger>
-              <SelectContent>
-                {events.map((event) => (
-                  <SelectItem key={event.id} value={event.id}>
-                    {event.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="event-products">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10 p-1 rounded-xl h-auto">
+          <TabsTrigger
+            value="event-products"
+            className="data-[state=active]:bg-gradient-blue data-[state=active]:text-white text-white/60 py-2.5 rounded-lg transition-all"
+          >
             <Package className="h-4 w-4 mr-2" />
             Inventario Productos
           </TabsTrigger>
-          <TabsTrigger value="event-supplies">
+          <TabsTrigger
+            value="event-supplies"
+            className="data-[state=active]:bg-gradient-blue data-[state=active]:text-white text-white/60 py-2.5 rounded-lg transition-all"
+          >
             <Box className="h-4 w-4 mr-2" />
             Inventario Insumos
           </TabsTrigger>
-          <TabsTrigger value="product-catalog">
+          <TabsTrigger
+            value="product-catalog"
+            className="data-[state=active]:bg-gradient-blue data-[state=active]:text-white text-white/60 py-2.5 rounded-lg transition-all"
+          >
             <Layers className="h-4 w-4 mr-2" />
             Catálogo Productos
           </TabsTrigger>
-          <TabsTrigger value="supply-catalog">
+          <TabsTrigger
+            value="supply-catalog"
+            className="data-[state=active]:bg-gradient-blue data-[state=active]:text-white text-white/60 py-2.5 rounded-lg transition-all"
+          >
             <Box className="h-4 w-4 mr-2" />
             Catálogo Insumos
           </TabsTrigger>
         </TabsList>
 
         {/* Tab 1: Event Product Inventory */}
-        <TabsContent value="event-products" className="space-y-4">
+        <TabsContent value="event-products" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Inventario de Productos del Evento</h2>
+            <h2 className="text-2xl font-bold text-white">Inventario de Productos</h2>
             {selectedEventId && (
-              <Button onClick={() => {
-                setSelectedProductsToLoad([])
-                setShowLoadProductsDialog(true)
-              }}>
+              <Button
+                onClick={() => {
+                  setSelectedProductsToLoad([])
+                  setShowLoadProductsDialog(true)
+                }}
+                className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-blue-500 hover:to-blue-300 text-white border-0"
+              >
                 <Upload className="h-4 w-4 mr-2" />
                 Cargar Productos
               </Button>
@@ -400,76 +416,124 @@ function InventoryContent() {
           </div>
 
           {!selectedEventId ? (
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                Selecciona un evento para ver su inventario
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-white/5 border border-white/10 rounded-xl">
+              <Package className="h-12 w-12 text-white/20" />
+              <p className="text-white/60">Selecciona un evento para ver su inventario</p>
+            </div>
           ) : eventProductInventory.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                No hay productos en el inventario de este evento
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-white/5 border border-white/10 rounded-xl">
+              <Package className="h-12 w-12 text-white/20" />
+              <p className="text-white/60">No hay productos en el inventario de este evento</p>
+            </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {eventProductInventory.map((item, index) => (
-                <Card key={`${item.id}-${index}`}>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg capitalize">
-                        {item.product.name}
-                      </CardTitle>
-                      {item.hasRecipe && (
-                        <Badge variant="outline" className="bg-orange-500/10 text-orange-500">
-                          Receta
-                        </Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Stock:</span>
-                      <span className="font-medium">
-                        {item.currentQty} / {item.initialQty}
-                      </span>
-                    </div>
-                    {item.currentQty <= item.minQty && (
-                      <div className="flex items-center gap-2 text-sm text-red-500">
-                        <AlertTriangle className="h-4 w-4" />
-                        Stock bajo (min: {item.minQty})
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {eventProductInventory.map((item, index) => {
+                const stockPercentage = Math.min(100, Math.max(0, (item.currentQty / item.initialQty) * 100))
+                const isLowStock = Number(item.currentQty) <= Number(item.minQty)
+
+                return (
+                  <Card key={`${item.id}-${index}`} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border-white/10 backdrop-blur-md hover:from-white/15 hover:to-white/10 transition-all duration-300 group hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-500/30 cursor-pointer">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <CardHeader className="pb-3 border-b border-white/5">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 group-hover:bg-blue-500/20 transition-colors">
+                            <Utensils className="h-5 w-5" />
+                          </div>
+                          <CardTitle className="text-xl font-bold capitalize text-white group-hover:text-blue-400 transition-colors">
+                            {item.product.name}
+                          </CardTitle>
+                        </div>
+                        {item.hasRecipe && (
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.2)]">
+                            Receta
+                          </Badge>
+                        )}
                       </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Precio venta:</span>
-                      <span className="font-medium">${Number(item.salePrice || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Costo:</span>
-                      <span className="font-medium">${Number(item.cost || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Margen:</span>
-                      <span className="font-medium text-green-600">
-                        {Number(item.profitMargin || 0).toFixed(1)}%
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent className="space-y-5 pt-5">
+                      {/* Stock Section */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-white/60 flex items-center gap-2">
+                            <Package className="h-4 w-4" /> Stock Disponible
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "text-lg font-bold",
+                              isLowStock ? "text-red-400" : "text-white"
+                            )}>
+                              {item.currentQty}
+                            </span>
+                            <span className="text-white/40 text-xs uppercase">/ {item.initialQty}</span>
+                          </div>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              isLowStock ? "bg-red-500" : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                            )}
+                            style={{ width: `${stockPercentage}%` }}
+                          />
+                        </div>
+                        {isLowStock && (
+                          <div className="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-500/10 p-2 rounded-lg border border-red-500/20 animate-pulse">
+                            <AlertTriangle className="h-3 w-3" />
+                            Stock crítico (Mín: {item.minQty})
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Financials Grid */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors">
+                          <div className="flex items-center gap-2 text-white/40 mb-1">
+                            <DollarSign className="h-3 w-3" />
+                            <span className="text-xs uppercase tracking-wider">Precio Venta</span>
+                          </div>
+                          <p className="font-bold text-lg text-white">${Number(item.salePrice || 0).toFixed(2)}</p>
+                        </div>
+                        <div className="bg-black/20 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-colors">
+                          <div className="flex items-center gap-2 text-white/40 mb-1">
+                            <TrendingUp className="h-3 w-3" />
+                            <span className="text-xs uppercase tracking-wider">Costo</span>
+                          </div>
+                          <p className="font-bold text-lg text-white">${Number(item.cost || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+
+                      {/* Margin Footer */}
+                      <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-2 text-white/60 text-sm">
+                          <BarChart3 className="h-4 w-4" />
+                          <span>Margen de Ganancia</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border-0 px-3 py-1 text-sm font-medium">
+                          {Number(item.profitMargin || 0).toFixed(1)}%
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </TabsContent>
 
         {/* Tab 2: Event Supply Inventory */}
-        <TabsContent value="event-supplies" className="space-y-4">
+        <TabsContent value="event-supplies" className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Inventario de Insumos del Evento</h2>
+            <h2 className="text-2xl font-bold text-white">Inventario de Insumos</h2>
             {selectedEventId && (
-              <Button onClick={() => {
-                setSelectedSuppliesToLoad([])
-                setShowLoadSuppliesDialog(true)
-              }}>
+              <Button
+                onClick={() => {
+                  setSelectedSuppliesToLoad([])
+                  setShowLoadSuppliesDialog(true)
+                }}
+                className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-blue-500 hover:to-blue-300 text-white border-0"
+              >
                 <Upload className="h-4 w-4 mr-2" />
                 Cargar Insumos
               </Button>
@@ -477,46 +541,83 @@ function InventoryContent() {
           </div>
 
           {!selectedEventId ? (
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                Selecciona un evento para ver su inventario
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-white/5 border border-white/10 rounded-xl">
+              <Box className="h-12 w-12 text-white/20" />
+              <p className="text-white/60">Selecciona un evento para ver su inventario</p>
+            </div>
           ) : eventSupplyInventory.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6 text-center text-muted-foreground">
-                No hay insumos en el inventario de este evento
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-white/5 border border-white/10 rounded-xl">
+              <Box className="h-12 w-12 text-white/20" />
+              <p className="text-white/60">No hay insumos en el inventario de este evento</p>
+            </div>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {eventSupplyInventory.map((item, index) => (
-                <Card key={`${item.id}-${index}`}>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg capitalize">
-                      {item.supply.name}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Stock:</span>
-                      <span className="font-medium">
-                        {item.currentQty} / {item.initialQty} {item.supply.unit}
-                      </span>
-                    </div>
-                    {item.currentQty <= item.minQty && (
-                      <div className="flex items-center gap-2 text-sm text-red-500">
-                        <AlertTriangle className="h-4 w-4" />
-                        Stock bajo (min: {item.minQty})
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {eventSupplyInventory.map((item, index) => {
+                const stockPercentage = Math.min(100, Math.max(0, (item.currentQty / item.initialQty) * 100))
+                const isLowStock = Number(item.currentQty) <= Number(item.minQty)
+
+                return (
+                  <Card key={`${item.id}-${index}`} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border-white/10 backdrop-blur-md hover:from-white/15 hover:to-white/10 transition-all duration-300 group hover:shadow-lg hover:shadow-purple-500/10 hover:border-purple-500/30 cursor-pointer">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <CardHeader className="pb-3 border-b border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 group-hover:bg-purple-500/20 transition-colors">
+                          <Box className="h-5 w-5" />
+                        </div>
+                        <CardTitle className="text-xl font-bold capitalize text-white group-hover:text-purple-400 transition-colors">
+                          {item.supply.name}
+                        </CardTitle>
                       </div>
-                    )}
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Unidad:</span>
-                      <span className="font-medium">{item.supply.unit}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent className="space-y-5 pt-5">
+                      {/* Stock Section */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center text-sm">
+                          <span className="text-white/60 flex items-center gap-2">
+                            <Layers className="h-4 w-4" /> Stock Disponible
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={cn(
+                              "text-lg font-bold",
+                              isLowStock ? "text-red-400" : "text-white"
+                            )}>
+                              {item.currentQty}
+                            </span>
+                            <span className="text-white/40 text-xs uppercase">/ {item.initialQty}</span>
+                          </div>
+                        </div>
+                        {/* Progress Bar */}
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-500",
+                              isLowStock ? "bg-red-500" : "bg-gradient-to-r from-purple-500 to-pink-500"
+                            )}
+                            style={{ width: `${stockPercentage}%` }}
+                          />
+                        </div>
+                        {isLowStock && (
+                          <div className="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-500/10 p-2 rounded-lg border border-red-500/20 animate-pulse">
+                            <AlertTriangle className="h-3 w-3" />
+                            Stock crítico (Mín: {item.minQty})
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Unit Info */}
+                      <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-2 text-white/60 text-sm">
+                          <Scale className="h-4 w-4" />
+                          <span>Unidad de Medida</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-white/10 text-white hover:bg-white/20 border-0 px-3 py-1">
+                          {item.supply.unit}
+                        </Badge>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
         </TabsContent>
@@ -524,27 +625,28 @@ function InventoryContent() {
         {/* Tab 3: Product Catalog */}
         <TabsContent value="product-catalog" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Productos ({allProducts.length})</h2>
+            <h2 className="text-2xl font-bold text-white">Productos ({allProducts.length})</h2>
             <Button
               onClick={() => {
                 resetProductForm()
                 setShowProductDialog(true)
               }}
+              className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-blue-500 hover:to-blue-300 text-white border-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Producto
             </Button>
           </div>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-white/10 to-white/5 border-white/10 backdrop-blur-md">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Costo</TableHead>
-                  <TableHead>Receta</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                <TableRow className="border-b border-white/10 hover:bg-white/5">
+                  <TableHead className="text-white/80">Nombre</TableHead>
+                  <TableHead className="text-white/80">Costo</TableHead>
+                  <TableHead className="text-white/80">Receta</TableHead>
+                  <TableHead className="text-white/80">Estado</TableHead>
+                  <TableHead className="text-right text-white/80">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -556,9 +658,9 @@ function InventoryContent() {
                   </TableRow>
                 ) : (
                   products.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium capitalize">{product.name}</TableCell>
-                      <TableCell>${Number(product.cost || 0).toFixed(2)}</TableCell>
+                    <TableRow key={product.id} className="border-b border-white/5 hover:bg-blue-500/10 transition-colors">
+                      <TableCell className="font-medium capitalize text-white">{product.name}</TableCell>
+                      <TableCell className="text-white/80">${Number(product.cost || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         {product.supplies?.length ? (
                           <Badge variant="outline" className="bg-orange-500/10 text-orange-500">
@@ -575,7 +677,7 @@ function InventoryContent() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openEditProduct(product)}>
+                          <Button variant="ghost" size="sm" onClick={() => openEditProduct(product)} className="hover:bg-blue-500/20 hover:text-blue-400">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <DeleteConfirmDialog
@@ -597,16 +699,17 @@ function InventoryContent() {
             </Table>
 
             {productsPages > 1 && (
-              <div className="flex items-center justify-center gap-2 p-4">
+              <div className="flex items-center justify-center gap-2 p-4 border-t border-white/10">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setProductsPage(p => Math.max(1, p - 1))}
                   disabled={productsPage === 1}
+                  className="border-white/10 text-white hover:bg-blue-500/20 hover:text-blue-400"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm">
+                <span className="text-sm text-white">
                   Página {productsPage} de {productsPages}
                 </span>
                 <Button
@@ -614,6 +717,7 @@ function InventoryContent() {
                   size="sm"
                   onClick={() => setProductsPage(p => Math.min(productsPages, p + 1))}
                   disabled={productsPage === productsPages}
+                  className="border-white/10 text-white hover:bg-blue-500/20 hover:text-blue-400"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -625,27 +729,28 @@ function InventoryContent() {
         {/* Tab 4: Supply Catalog */}
         <TabsContent value="supply-catalog" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">Insumos ({allSupplies.length})</h2>
+            <h2 className="text-2xl font-bold text-white">Insumos ({allSupplies.length})</h2>
             <Button
               onClick={() => {
                 resetSupplyForm()
                 setShowSupplyDialog(true)
               }}
+              className="bg-gradient-to-r from-blue-900 to-blue-700 hover:from-blue-500 hover:to-blue-300 text-white border-0"
             >
               <Plus className="h-4 w-4 mr-2" />
               Nuevo Insumo
             </Button>
           </div>
 
-          <Card>
+          <Card className="bg-gradient-to-br from-white/10 to-white/5 border-white/10 backdrop-blur-md">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Unidad</TableHead>
-                  <TableHead>Costo</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                <TableRow className="border-b border-white/10 hover:bg-white/5">
+                  <TableHead className="text-white/80">Nombre</TableHead>
+                  <TableHead className="text-white/80">Unidad</TableHead>
+                  <TableHead className="text-white/80">Costo</TableHead>
+                  <TableHead className="text-white/80">Estado</TableHead>
+                  <TableHead className="text-right text-white/80">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -657,10 +762,10 @@ function InventoryContent() {
                   </TableRow>
                 ) : (
                   supplies.map((supply) => (
-                    <TableRow key={supply.id}>
-                      <TableCell className="font-medium capitalize">{supply.name}</TableCell>
-                      <TableCell>{supply.unit}</TableCell>
-                      <TableCell>${Number(supply.cost || 0).toFixed(2)}</TableCell>
+                    <TableRow key={supply.id} className="border-b border-white/5 hover:bg-purple-500/10 transition-colors">
+                      <TableCell className="font-medium capitalize text-white">{supply.name}</TableCell>
+                      <TableCell className="text-white/80">{supply.unit}</TableCell>
+                      <TableCell className="text-white/80">${Number(supply.cost || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant={supply.isActive ? "default" : "secondary"}>
                           {supply.isActive ? "Activo" : "Inactivo"}
@@ -668,12 +773,12 @@ function InventoryContent() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => openEditSupply(supply)}>
+                          <Button variant="ghost" size="sm" onClick={() => openEditSupply(supply)} className="hover:bg-purple-500/20 hover:text-purple-400">
                             <Edit className="h-4 w-4" />
                           </Button>
                           <DeleteConfirmDialog
                             trigger={
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" className="hover:bg-red-500/20 hover:text-red-400">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             }
@@ -690,16 +795,17 @@ function InventoryContent() {
             </Table>
 
             {suppliesPages > 1 && (
-              <div className="flex items-center justify-center gap-2 p-4">
+              <div className="flex items-center justify-center gap-2 p-4 border-t border-white/10">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setSuppliesPage(p => Math.max(1, p - 1))}
                   disabled={suppliesPage === 1}
+                  className="border-white/10 text-white hover:bg-purple-500/20 hover:text-purple-400"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm">
+                <span className="text-sm text-white">
                   Página {suppliesPage} de {suppliesPages}
                 </span>
                 <Button
@@ -707,6 +813,7 @@ function InventoryContent() {
                   size="sm"
                   onClick={() => setSuppliesPage(p => Math.min(suppliesPages, p + 1))}
                   disabled={suppliesPage === suppliesPages}
+                  className="border-white/10 text-white hover:bg-purple-500/20 hover:text-purple-400"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -718,53 +825,58 @@ function InventoryContent() {
 
       {/* Supply Dialog */}
       <Dialog open={showSupplyDialog} onOpenChange={setShowSupplyDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingSupply ? "Editar Insumo" : "Nuevo Insumo"}</DialogTitle>
+        <DialogContent className="bg-gradient-to-br from-gray-950 to-black border-white/10">
+          <DialogHeader className="border-b border-white/10 pb-4">
+            <DialogTitle className="text-xl text-white">{editingSupply ? "Editar Insumo" : "Nuevo Insumo"}</DialogTitle>
+            <p className="text-xs text-white/50 mt-1">Define los detalles del insumo para tu inventario</p>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="supply-name">Nombre</Label>
-              <Input
-                id="supply-name"
-                value={supplyForm.name}
-                onChange={(e) => setSupplyForm({ ...supplyForm, name: e.target.value })}
-                placeholder="Ej: Harina"
-              />
+          <div className="space-y-4 py-4">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-lg p-4 space-y-4">
+              <div>
+                <Label htmlFor="supply-name" className="text-white/90">Nombre</Label>
+                <Input
+                  id="supply-name"
+                  value={supplyForm.name}
+                  onChange={(e) => setSupplyForm({ ...supplyForm, name: e.target.value })}
+                  placeholder="Ej: Harina"
+                  className="mt-1.5 bg-black/30 border-white/10 text-white placeholder:text-white/40 focus:border-purple-500/50"
+                />
+              </div>
+              <div>
+                <Label htmlFor="supply-unit" className="text-white/90">Unidad de Medida</Label>
+                <Select
+                  value={supplyForm.unit}
+                  onValueChange={(value) => setSupplyForm({ ...supplyForm, unit: value })}
+                >
+                  <SelectTrigger id="supply-unit" className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black border-white/20">
+                    <SelectItem value="unidades" className="text-white focus:bg-white/10">Unidades</SelectItem>
+                    <SelectItem value="kg" className="text-white focus:bg-white/10">Kilogramos</SelectItem>
+                    <SelectItem value="g" className="text-white focus:bg-white/10">Gramos</SelectItem>
+                    <SelectItem value="l" className="text-white focus:bg-white/10">Litros</SelectItem>
+                    <SelectItem value="ml" className="text-white focus:bg-white/10">Mililitros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="supply-cost" className="text-white/90">Costo por Unidad</Label>
+                <Input
+                  id="supply-cost"
+                  type="number"
+                  step="0.01"
+                  value={supplyForm.cost}
+                  onChange={(e) => setSupplyForm({ ...supplyForm, cost: parseFloat(e.target.value) || 0 })}
+                  className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                />
+              </div>
             </div>
-            <div>
-              <Label htmlFor="supply-unit">Unidad</Label>
-              <Select
-                value={supplyForm.unit}
-                onValueChange={(value) => setSupplyForm({ ...supplyForm, unit: value })}
-              >
-                <SelectTrigger id="supply-unit">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unidades">Unidades</SelectItem>
-                  <SelectItem value="kg">Kilogramos</SelectItem>
-                  <SelectItem value="g">Gramos</SelectItem>
-                  <SelectItem value="l">Litros</SelectItem>
-                  <SelectItem value="ml">Mililitros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="supply-cost">Costo</Label>
-              <Input
-                id="supply-cost"
-                type="number"
-                step="0.01"
-                value={supplyForm.cost}
-                onChange={(e) => setSupplyForm({ ...supplyForm, cost: parseFloat(e.target.value) || 0 })}
-              />
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setShowSupplyDialog(false)}>
+            <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+              <Button variant="outline" onClick={() => setShowSupplyDialog(false)} className="bg-transparent hover:bg-purple-950 border-white/10">
                 Cancelar
               </Button>
-              <Button onClick={editingSupply ? handleUpdateSupply : handleCreateSupply}>
+              <Button onClick={editingSupply ? handleUpdateSupply : handleCreateSupply} className="bg-purple-950 hover:bg-purple-900">
                 {editingSupply ? "Guardar" : "Crear"}
               </Button>
             </div>
@@ -772,61 +884,69 @@ function InventoryContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Product Dialog */}
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-gray-950 to-black border-white/10">
+          <DialogHeader className="border-b border-white/10 pb-4">
+            <DialogTitle className="text-xl text-white">{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
+            <p className="text-xs text-white/50 mt-1">Configura los detalles del producto y su receta</p>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="product-name">Nombre</Label>
-              <Input
-                id="product-name"
-                value={productForm.name}
-                onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                placeholder="Ej: Hamburguesa Completa"
-              />
-            </div>
-            <div>
-              <Label htmlFor="product-cost">Costo Base</Label>
-              <Input
-                id="product-cost"
-                type="number"
-                step="0.01"
-                value={productForm.cost}
-                onChange={(e) => setProductForm({ ...productForm, cost: parseFloat(e.target.value) || 0 })}
-                disabled={useRecipe}
-              />
-              {useRecipe && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  El costo se calculará automáticamente desde la receta
-                </p>
-              )}
+          <div className="space-y-4 py-4">
+            {/* Basic Info Section */}
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-lg p-4 space-y-4">
+              <div>
+                <Label htmlFor="product-name" className="text-white/90">Nombre del Producto</Label>
+                <Input
+                  id="product-name"
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  placeholder="Ej: Hamburguesa Completa"
+                  className="mt-1.5 bg-black/30 border-white/10 text-white placeholder:text-white/40 focus:border-blue-500/50"
+                />
+              </div>
+              <div>
+                <Label htmlFor="product-cost" className="text-white/90">Costo Base</Label>
+                <Input
+                  id="product-cost"
+                  type="number"
+                  step="0.01"
+                  value={productForm.cost}
+                  onChange={(e) => setProductForm({ ...productForm, cost: parseFloat(e.target.value) || 0 })}
+                  disabled={useRecipe}
+                  className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50 disabled:opacity-50"
+                />
+                {useRecipe && (
+                  <p className="text-xs text-blue-400/70 mt-1.5 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    El costo se calculará automáticamente desde la receta
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Recipe Section */}
-            <div className="space-y-3 pt-2 border-t">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-lg p-4 space-y-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="use-recipe"
                   checked={useRecipe}
                   onCheckedChange={(checked) => setUseRecipe(!!checked)}
+                  className="border-white/30 data-[state=checked]:bg-blue-500 data-[state=checked]:border-blue-500"
                 />
-                <Label htmlFor="use-recipe" className="cursor-pointer">
+                <Label htmlFor="use-recipe" className="cursor-pointer text-white/90 text-sm">
                   Este producto tiene receta (asignar insumos)
                 </Label>
               </div>
 
               {useRecipe && (
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between">
-                    <Label>Insumos de la Receta</Label>
+                    <Label className="text-white/90">Insumos de la Receta</Label>
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
                       onClick={addSupplyToRecipe}
+                      className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/30"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Agregar Insumo
@@ -834,25 +954,27 @@ function InventoryContent() {
                   </div>
 
                   {recipeSupplies.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No hay insumos asignados. Haz clic en &quot;Agregar Insumo&quot; para empezar.
-                    </p>
+                    <div className="flex flex-col items-center justify-center py-8 bg-white/5 border border-white/10 rounded-lg">
+                      <Layers className="h-10 w-10 text-white/20 mb-2" />
+                      <p className="text-sm text-white/60">No hay insumos asignados</p>
+                      <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Insumo" para empezar</p>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {recipeSupplies.map((item, index) => (
-                        <div key={index} className="flex gap-2 items-end">
+                        <div key={index} className="flex gap-2 items-end bg-black/20 p-3 rounded-lg border border-white/5 hover:border-blue-500/30 transition-colors">
                           <div className="flex-1">
-                            <Label className="text-xs">Insumo</Label>
+                            <Label className="text-xs text-white/70">Insumo</Label>
                             <Select
                               value={item.supplyId}
                               onValueChange={(value) => updateRecipeSupply(index, 'supplyId', value)}
                             >
-                              <SelectTrigger className="h-9">
+                              <SelectTrigger className="h-9 mt-1 bg-black/30 border-white/10 text-white focus:border-blue-500/50">
                                 <SelectValue placeholder="Seleccionar..." />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="bg-black border-white/20">
                                 {allSupplies.map((supply) => (
-                                  <SelectItem key={supply.id} value={supply.id}>
+                                  <SelectItem key={supply.id} value={supply.id} className="text-white focus:bg-white/10">
                                     {supply.name} ({supply.unit})
                                   </SelectItem>
                                 ))}
@@ -860,14 +982,14 @@ function InventoryContent() {
                             </Select>
                           </div>
                           <div className="w-32">
-                            <Label className="text-xs">Cantidad</Label>
+                            <Label className="text-xs text-white/70">Cantidad</Label>
                             <Input
                               type="number"
                               step="0.01"
                               min="0"
                               value={item.qtyPerUnit}
                               onChange={(e) => updateRecipeSupply(index, 'qtyPerUnit', parseFloat(e.target.value) || 0)}
-                              className="h-9"
+                              className="h-9 mt-1 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
                             />
                           </div>
                           <Button
@@ -875,7 +997,7 @@ function InventoryContent() {
                             variant="ghost"
                             size="sm"
                             onClick={() => removeSupplyFromRecipe(index)}
-                            className="h-9"
+                            className="h-9 bg-red-500/10 hover:bg-red-500/20 text-red-400"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -887,11 +1009,11 @@ function InventoryContent() {
               )}
             </div>
 
-            <div className="flex gap-2 justify-end pt-4">
-              <Button variant="outline" onClick={() => setShowProductDialog(false)}>
+            <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+              <Button variant="outline" onClick={() => setShowProductDialog(false)} className="bg-transparent hover:bg-blue-950 border-white/10">
                 Cancelar
               </Button>
-              <Button onClick={editingProduct ? handleUpdateProduct : handleCreateProduct}>
+              <Button onClick={editingProduct ? handleUpdateProduct : handleCreateProduct} className="bg-blue-950 hover:bg-blue-900">
                 {editingProduct ? "Guardar" : "Crear"}
               </Button>
             </div>
@@ -906,102 +1028,141 @@ function InventoryContent() {
             <DialogTitle>Cargar Productos al Inventario del Evento</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                Selecciona los productos y configura su inventario inicial
-              </p>
-              <Button type="button" variant="outline" size="sm" onClick={addProductToLoad}>
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium">
+                  Selecciona los productos y configura su inventario inicial
+                </p>
+                <p className="text-xs text-white/50 mt-1">
+                  Los productos con receta calcularán el costo automáticamente
+                </p>
+              </div>
+              <Button type="button" size="sm" onClick={addProductToLoad} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30">
                 <Plus className="h-4 w-4 mr-1" />
                 Agregar Producto
               </Button>
             </div>
 
             {selectedProductsToLoad.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No hay productos seleccionados
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 bg-white/5 border border-white/10 rounded-xl">
+                <Package className="h-12 w-12 text-white/20 mb-3" />
+                <p className="text-white/60">No hay productos seleccionados</p>
+                <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Producto" para comenzar</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {selectedProductsToLoad.map((item, index) => {
                   const product = allProducts.find(p => p.id === item.productId)
                   const hasRecipe = product?.supplies && product.supplies.length > 0
+                  const profitMargin = item.salePrice && item.cost ? (((item.salePrice - item.cost) / item.salePrice) * 100) : 0
 
                   return (
-                    <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded">
-                      <div className="col-span-3">
-                        <Label className="text-xs">Producto</Label>
-                        <Select
-                          value={item.productId}
-                          onValueChange={(value) => updateProductToLoad(index, 'productId', value)}
-                        >
-                          <SelectTrigger className="h-9">
-                            <SelectValue placeholder="Seleccionar..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allProducts.map((product) => (
-                              <SelectItem key={product.id} value={product.id}>
-                                {product.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                    <div key={index} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-xl p-4 hover:from-white/15 hover:to-white/10 hover:border-blue-500/30 transition-all duration-300 group">
+                      {/* Top indicator */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      {/* Recipe Badge */}
+                      {hasRecipe && (
+                        <div className="absolute top-3 right-3">
+                          <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs">
+                            Con Receta
+                          </Badge>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-12 gap-3 items-end">
+                        <div className="col-span-3">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Producto</Label>
+                          <Select
+                            value={item.productId}
+                            onValueChange={(value) => updateProductToLoad(index, 'productId', value)}
+                          >
+                            <SelectTrigger className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-black border-white/20">
+                              {allProducts.map((product) => (
+                                <SelectItem key={product.id} value={product.id} className="text-white focus:bg-white/10">
+                                  {product.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Stock Inicial</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.initialQty}
+                            onChange={(e) => updateProductToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Stock Mínimo</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.minQty}
+                            onChange={(e) => updateProductToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">
+                            {hasRecipe ? "Costo (Auto)" : "Costo"}
+                          </Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.cost}
+                            onChange={(e) => updateProductToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                            disabled={!!hasRecipe}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Precio Venta</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.salePrice}
+                            onChange={(e) => updateProductToLoad(index, 'salePrice', parseFloat(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                          />
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => removeProductToLoad(index)}
+                            className="h-9 w-9 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Stock Inicial</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.initialQty}
-                          onChange={(e) => updateProductToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Stock Mínimo</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          value={item.minQty}
-                          onChange={(e) => updateProductToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">
-                          {hasRecipe ? "Costo (Auto)" : "Costo Unitario"}
-                        </Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.cost}
-                          onChange={(e) => updateProductToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
-                          className="h-9"
-                          disabled={!!hasRecipe}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Label className="text-xs">Precio Venta</Label>
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.salePrice}
-                          onChange={(e) => updateProductToLoad(index, 'salePrice', parseFloat(e.target.value) || 0)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="col-span-1 flex justify-end">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeProductToLoad(index)}
-                          className="h-9 w-9 p-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
+
+                      {/* Profit Margin Indicator */}
+                      {item.salePrice > 0 && item.cost > 0 && (
+                        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
+                          <span className="text-xs text-white/50">Margen de ganancia</span>
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              "text-xs",
+                              profitMargin > 30 ? "bg-green-500/10 text-green-400" :
+                                profitMargin > 15 ? "bg-yellow-500/10 text-yellow-400" :
+                                  "bg-red-500/10 text-red-400"
+                            )}
+                          >
+                            {profitMargin.toFixed(1)}%
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -1009,10 +1170,10 @@ function InventoryContent() {
             )}
 
             <div className="flex justify-end pt-4 gap-2">
-              <Button variant="outline" onClick={() => setShowLoadProductsDialog(false)}>
+              <Button className="bg-transparent hover:bg-blue-950" onClick={() => setShowLoadProductsDialog(false)}>
                 Cancelar
               </Button>
-              <Button
+              <Button className="bg-blue-950 hover:bg-blue-900"
                 onClick={handleLoadProducts}
                 disabled={selectedProductsToLoad.length === 0}
               >
@@ -1030,94 +1191,109 @@ function InventoryContent() {
             <DialogTitle>Cargar Insumos al Inventario del Evento</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                Selecciona los insumos y configura su stock inicial
-              </p>
-              <Button type="button" variant="outline" size="sm" onClick={addSupplyToLoad}>
+            <div className="flex justify-between items-center border-b border-white/10 pb-4">
+              <div>
+                <p className="text-sm text-white/80 font-medium">
+                  Selecciona los insumos y configura su stock inicial
+                </p>
+                <p className="text-xs text-white/50 mt-1">
+                  Define las cantidades base para cada insumo del evento
+                </p>
+              </div>
+              <Button type="button" size="sm" onClick={addSupplyToLoad} className="bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 border border-purple-500/30">
                 <Plus className="h-4 w-4 mr-1" />
                 Agregar Insumo
               </Button>
             </div>
 
             {selectedSuppliesToLoad.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No hay insumos seleccionados
-              </p>
+              <div className="flex flex-col items-center justify-center py-12 bg-white/5 border border-white/10 rounded-xl">
+                <Layers className="h-12 w-12 text-white/20 mb-3" />
+                <p className="text-white/60">No hay insumos seleccionados</p>
+                <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Insumo" para comenzar</p>
+              </div>
             ) : (
               <div className="space-y-3">
-                {selectedSuppliesToLoad.map((item, index) => (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-end p-3 border rounded">
-                    <div className="col-span-4">
-                      <Label className="text-xs">Insumo</Label>
-                      <Select
-                        value={item.supplyId}
-                        onValueChange={(value) => updateSupplyToLoad(index, 'supplyId', value)}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Seleccionar..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {allSupplies.map((supply) => (
-                            <SelectItem key={supply.id} value={supply.id}>
-                              {supply.name} ({supply.unit})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                {selectedSuppliesToLoad.map((item, index) => {
+                  const supply = allSupplies.find(s => s.id === item.supplyId)
+
+                  return (
+                    <div key={index} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-xl p-4 hover:from-white/15 hover:to-white/10 hover:border-purple-500/30 transition-all duration-300 group">
+                      {/* Top indicator */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-pink-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                      <div className="grid grid-cols-12 gap-3 items-end">
+                        <div className="col-span-4">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Insumo</Label>
+                          <Select
+                            value={item.supplyId}
+                            onValueChange={(value) => updateSupplyToLoad(index, 'supplyId', value)}
+                          >
+                            <SelectTrigger className="h-9 bg-black/30 border-white/10 text-white focus:border-purple-500/50">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent className="bg-black border-white/20">
+                              {allSupplies.map((supply) => (
+                                <SelectItem key={supply.id} value={supply.id} className="text-white focus:bg-white/10">
+                                  {supply.name} ({supply.unit})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Stock Inicial</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.initialQty}
+                            onChange={(e) => updateSupplyToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Stock Mínimo</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            value={item.minQty}
+                            onChange={(e) => updateSupplyToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <Label className="text-xs text-white/70 mb-1.5 block">Costo Unitario</Label>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={item.cost}
+                            onChange={(e) => updateSupplyToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
+                            className="h-9 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                          />
+                        </div>
+                        <div className="col-span-1 flex justify-end">
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => removeSupplyToLoad(index)}
+                            className="h-9 w-9 p-0 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Stock Inicial</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={item.initialQty}
-                        onChange={(e) => updateSupplyToLoad(index, 'initialQty', parseInt(e.target.value) || 0)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <Label className="text-xs">Stock Mínimo</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={item.minQty}
-                        onChange={(e) => updateSupplyToLoad(index, 'minQty', parseInt(e.target.value) || 0)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="col-span-3">
-                      <Label className="text-xs">Costo Unitario</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.cost}
-                        onChange={(e) => updateSupplyToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
-                        className="h-9"
-                      />
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeSupplyToLoad(index)}
-                        className="h-9"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
 
-            <div className="flex gap-2 justify-end pt-4 border-t">
-              <Button variant="outline" onClick={() => setShowLoadSuppliesDialog(false)}>
+            <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+              <Button className="bg-transparent hover:bg-purple-950" onClick={() => setShowLoadSuppliesDialog(false)}>
                 Cancelar
               </Button>
-              <Button
+              <Button className="bg-purple-950 hover:bg-purple-900"
                 onClick={handleLoadSupplies}
                 disabled={selectedSuppliesToLoad.length === 0}
               >

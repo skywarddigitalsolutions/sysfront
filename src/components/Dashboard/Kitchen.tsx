@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Clock, ChefHat, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Clock, ChefHat, CheckCircle2, AlertTriangle, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { StatusPill } from "@/components/status-pill"
 import { useActiveEvents } from "@/features/events/hooks/useEvents"
@@ -46,61 +46,108 @@ function OrderDetailsModal({
   const statusInfo = getStatusInfo(order.status.name)
   const StatusIcon = statusInfo.icon
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
+  const [showScrollHint, setShowScrollHint] = useState(false)
+
+  const checkScroll = () => {
+    if (scrollRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
+      // Consideramos que llegó al fondo si está cerca (margen de 10px) o si no hay scroll
+      const isBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10 || scrollHeight <= clientHeight
+
+      if (isBottom) {
+        setHasScrolledToBottom(true)
+        setShowScrollHint(false)
+      } else {
+        setShowScrollHint(true)
+      }
+    }
+  }
+
+  useEffect(() => {
+    // Reset state when order changes or modal opens
+    if (isOpen) {
+      setHasScrolledToBottom(false)
+      // Small timeout to allow render and calculation of heights
+      setTimeout(checkScroll, 100)
+    }
+  }, [isOpen, order])
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 bg-black border border-white/20">
+        <DialogHeader className="p-6 pb-4 border-b border-white/10 flex-shrink-0">
+          <DialogTitle className="flex items-center gap-3 text-2xl text-white">
             Pedido #{order.orderNumber}
             <Badge className={cn("text-white", statusInfo.color)}>
               <StatusIcon className="h-4 w-4 mr-1" />
               {statusInfo.label}
             </Badge>
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-white/60">
             {order.customerIdentifier && `Cliente: ${order.customerIdentifier} | `}
             {new Date(order.createdAt).toLocaleString("es-AR")}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="rounded-lg border p-4 space-y-3">
-            <h3 className="font-semibold text-lg">Items del Pedido</h3>
+        <div
+          ref={scrollRef}
+          onScroll={checkScroll}
+          className="flex-1 overflow-y-auto p-6 space-y-4 relative"
+        >
+          <div className="rounded-lg border border-white/10 bg-white/5 p-4 space-y-3">
+            <h3 className="font-semibold text-lg text-white">Items del Pedido</h3>
             {order.items.map((item, idx) => (
               <div
                 key={`${item.id}-${idx}`}
-                className="flex justify-between items-center py-2 border-b last:border-0"
+                className="flex justify-between items-center py-2 border-b border-white/10 last:border-0"
               >
                 <div>
-                  <p className="font-medium capitalize">{item.product.name}</p>
-                  <p className="text-sm text-muted-foreground">Cantidad: {formatQty(item.qty)}</p>
+                  <p className="font-medium capitalize text-white">{item.product.name}</p>
+                  <p className="text-sm text-white/60">Cantidad: {formatQty(item.qty)}</p>
                 </div>
-                <p className="font-semibold">${(Number(item.unitPrice) * item.qty).toFixed(2)}</p>
+                <p className="font-semibold text-white">${(Number(item.unitPrice) * item.qty).toFixed(2)}</p>
               </div>
             ))}
 
             {order.observations && (
-              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4">
+              <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-4 mt-4">
                 <h3 className="font-semibold text-sm text-orange-400 mb-2">Observaciones</h3>
-                <p className="text-sm">{order.observations}</p>
+                <p className="text-sm text-white/80">{order.observations}</p>
               </div>
             )}
           </div>
+        </div>
 
+        {showScrollHint && !hasScrolledToBottom && (
+          <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-black/80 text-white px-4 py-2 rounded-full text-sm flex items-center justify-centeranimate-bounce border border-white/20 pointer-events-none z-50">
+            Scrollea para confirmar <ChevronDown className="ml-2 h-4 w-4" />
+          </div>
+        )}
 
-          <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">
-            <span>Total</span>
+        <div className="p-6 pt-4 border-t border-white/10 bg-black flex-shrink-0 space-y-4 relative z-10">
+          <div className="flex justify-between items-center text-lg font-bold">
+            <span className="text-white">Total</span>
             <span className="text-white">${Number(order.totalAmount).toFixed(2)}</span>
           </div>
 
           <div className="flex gap-2">
+            <Button
+              onClick={onClose}
+              variant="outline"
+              className="flex-1 border-white/20 text-white hover:bg-white/10"
+            >
+              Cerrar
+            </Button>
             {order.status.name === "PENDING" && (
               <Button
+                disabled={!hasScrolledToBottom}
                 onClick={() => {
                   onStartPreparation(order.id)
                   onClose()
                 }}
-                className="flex-1 bg-red-500 hover:bg-yellow-500"
+                className="flex-1 bg-red-500 hover:bg-yellow-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChefHat className="h-4 w-4 mr-2" />
                 Iniciar Preparación
@@ -108,11 +155,12 @@ function OrderDetailsModal({
             )}
             {order.status.name === "IN_PROGRESS" && (
               <Button
+                disabled={!hasScrolledToBottom}
                 onClick={() => {
                   onCompletePreparation(order.id)
                   onClose()
                 }}
-                className="flex-1 bg-yellow-500 hover:bg-green-500"
+                className="flex-1 bg-yellow-500 hover:bg-green-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Marcar Completado
