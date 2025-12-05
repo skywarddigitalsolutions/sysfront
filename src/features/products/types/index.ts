@@ -21,12 +21,10 @@ export interface ProductSupply {
 
 export interface CreateProductDto {
   name: string;
-  cost: number;
 }
 
 export interface UpdateProductDto {
   name?: string;
-  cost?: number;
 }
 
 export interface AssignSuppliesDto {

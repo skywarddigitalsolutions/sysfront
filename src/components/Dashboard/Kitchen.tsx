@@ -28,24 +28,6 @@ function OrderDetailsModal({
   onStartPreparation: (orderId: string) => void
   onCompletePreparation: (orderId: string) => void
 }) {
-  if (!order) return null
-
-  const getStatusInfo = (statusName: string) => {
-    switch (statusName) {
-      case "PENDING":
-        return { label: "Pendiente", color: "bg-red-500", icon: Clock }
-      case "IN_PROGRESS":
-        return { label: "En Preparación", color: "bg-yellow-500", icon: ChefHat }
-      case "COMPLETED":
-        return { label: "Completado", color: "bg-green-500", icon: CheckCircle2 }
-      default:
-        return { label: "Desconocido", color: "bg-gray-500", icon: Clock }
-    }
-  }
-
-  const statusInfo = getStatusInfo(order.status.name)
-  const StatusIcon = statusInfo.icon
-
   const scrollRef = useRef<HTMLDivElement>(null)
   const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false)
   const [showScrollHint, setShowScrollHint] = useState(false)
@@ -73,6 +55,24 @@ function OrderDetailsModal({
       setTimeout(checkScroll, 100)
     }
   }, [isOpen, order])
+
+  if (!order) return null
+
+  const getStatusInfo = (statusName: string) => {
+    switch (statusName) {
+      case "PENDING":
+        return { label: "Pendiente", color: "bg-red-500", icon: Clock }
+      case "IN_PROGRESS":
+        return { label: "En Preparación", color: "bg-yellow-500", icon: ChefHat }
+      case "COMPLETED":
+        return { label: "Completado", color: "bg-green-500", icon: CheckCircle2 }
+      default:
+        return { label: "Desconocido", color: "bg-gray-500", icon: Clock }
+    }
+  }
+
+  const statusInfo = getStatusInfo(order.status.name)
+  const StatusIcon = statusInfo.icon
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

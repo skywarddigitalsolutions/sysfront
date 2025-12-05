@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService } from '../services/inventory.service';
-import type { LoadProductsDto, LoadSuppliesDto } from '../types';
+import type { LoadProductsDto, LoadSuppliesDto, UpdateProductInventoryDto, UpdateSupplyInventoryDto } from '../types';
 
 export const useEventProducts = (eventId: string) => {
     return useQuery({
@@ -67,8 +67,42 @@ export const useInventoryMutations = (eventId: string) => {
         },
     });
 
+    const updateProduct = useMutation({
+        mutationFn: ({ productId, data }: { productId: string; data: UpdateProductInventoryDto }) =>
+            inventoryService.updateEventProduct(eventId, productId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'products', eventId] });
+        },
+    });
+
+    const deleteProduct = useMutation({
+        mutationFn: (productId: string) => inventoryService.deleteEventProduct(eventId, productId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'products', eventId] });
+        },
+    });
+
+    const updateSupply = useMutation({
+        mutationFn: ({ supplyId, data }: { supplyId: string; data: UpdateSupplyInventoryDto }) =>
+            inventoryService.updateEventSupply(eventId, supplyId, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'supplies', eventId] });
+        },
+    });
+
+    const deleteSupply = useMutation({
+        mutationFn: (supplyId: string) => inventoryService.deleteEventSupply(eventId, supplyId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['inventory', 'supplies', eventId] });
+        },
+    });
+
     return {
         loadProducts,
         loadSupplies,
+        updateProduct,
+        deleteProduct,
+        updateSupply,
+        deleteSupply,
     };
 };

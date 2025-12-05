@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface DeleteConfirmDialogProps {
-    trigger: ReactNode
+    trigger?: ReactNode
     title: string
     description: string
     onConfirm: () => void
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
 }
 
 export function DeleteConfirmDialog({
@@ -25,20 +27,22 @@ export function DeleteConfirmDialog({
     title,
     description,
     onConfirm,
+    open,
+    onOpenChange,
 }: DeleteConfirmDialogProps) {
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-            <AlertDialogContent>
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+            {trigger && <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>}
+            <AlertDialogContent className="bg-gradient-to-br from-gray-950 to-black border-white/10">
                 <AlertDialogHeader>
-                    <AlertDialogTitle>{title}</AlertDialogTitle>
-                    <AlertDialogDescription>{description}</AlertDialogDescription>
+                    <AlertDialogTitle className="text-white">{title}</AlertDialogTitle>
+                    <AlertDialogDescription className="text-white/60">{description}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogCancel className="bg-transparent border-white/10 text-white hover:bg-white/10">Cancelar</AlertDialogCancel>
                     <AlertDialogAction
                         onClick={onConfirm}
-                        className="bg-blue-950 text-white hover:bg-blue-800"
+                        className="bg-red-600 text-white hover:bg-red-700"
                     >
                         Eliminar
                     </AlertDialogAction>

@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { useEvents, useEventMutations } from "@/features/events/hooks/useEvents"
 import type { Event, CreateEventDto } from "@/features/events/types"
+import { useToast } from "@/hooks/use-toast"
 
 export default function EventosDashboard() {
   return (
@@ -43,8 +44,8 @@ function EventosContent() {
   })
 
   const { data: events = [] } = useEvents()
-
   const { createEvent, updateEvent } = useEventMutations()
+  const { toast } = useToast()
 
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
@@ -74,16 +75,40 @@ function EventosContent() {
         // Update logic
         updateEvent.mutate({ id: editingEvent.id, data: formData }, {
           onSuccess: () => {
+            toast({
+              title: "Evento actualizado",
+              description: `El evento "${formData.name}" ha sido actualizado exitosamente.`,
+            })
             setIsCreateDialogOpen(false)
             resetForm()
+          },
+          onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+            const errorMessage = error?.response?.data?.message || error?.message || "Error desconocido al actualizar el evento"
+            toast({
+              variant: "destructive",
+              title: "Error al actualizar evento",
+              description: errorMessage,
+            })
           }
         })
       } else {
         // Create logic
         createEvent.mutate(formData, {
           onSuccess: () => {
+            toast({
+              title: "Evento creado",
+              description: `El evento "${formData.name}" ha sido creado exitosamente.`,
+            })
             setIsCreateDialogOpen(false)
             resetForm()
+          },
+          onError: (error: Error & { response?: { data?: { message?: string } } }) => {
+            const errorMessage = error?.response?.data?.message || error?.message || "Error desconocido al crear el evento"
+            toast({
+              variant: "destructive",
+              title: "Error al crear evento",
+              description: errorMessage,
+            })
           }
         })
       }

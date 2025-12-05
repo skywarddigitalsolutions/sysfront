@@ -53,3 +53,16 @@ export interface LoadSuppliesDto {
         cost: number;
     }[];
 }
+
+export interface UpdateProductInventoryDto {
+    currentQty?: number;
+    minQty?: number;
+    cost?: number;
+    salePrice?: number;
+}
+
+export interface UpdateSupplyInventoryDto {
+    currentQty?: number;
+    minQty?: number;
+    cost?: number;
+}

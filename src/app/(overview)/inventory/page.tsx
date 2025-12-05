@@ -18,12 +18,15 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog"
 import { cn } from "@/lib/utils"
 
 import { useEvents } from "@/features/events/hooks/useEvents"
+import { useToast } from "@/hooks/use-toast"
 import { useEventProducts, useEventSupplies, useInventoryMutations } from "@/features/inventory/hooks/useInventory"
 import { useSupplies, useSupplyMutations } from "@/features/supplies/hooks/useSupplies"
 import { useProducts, useProductMutations } from "@/features/products/hooks/useProducts"
+import { productsService } from "@/features/products/services/products.service"
+import { inventoryService } from "@/features/inventory/services/inventory.service"
 import type { Supply, CreateSupplyDto, UpdateSupplyDto } from "@/features/supplies/types"
 import type { Product, CreateProductDto, UpdateProductDto, AssignSuppliesDto } from "@/features/products/types"
-import type { LoadProductsDto, LoadSuppliesDto } from "@/features/inventory/types"
+import type { LoadProductsDto, LoadSuppliesDto, EventProductInventory, EventSupplyInventory, UpdateProductInventoryDto, UpdateSupplyInventoryDto } from "@/features/inventory/types"
 
 export default function InventoryPage() {
   return (
@@ -39,6 +42,7 @@ function InventoryContent() {
 
   const [selectedEventId, setSelectedEventId] = useState<string>("")
   const [activeTab, setActiveTab] = useState("event-products")
+  const { toast } = useToast()
 
   // Pagination
   const [suppliesPage, setSuppliesPage] = useState(1)
@@ -68,8 +72,7 @@ function InventoryContent() {
   const [editingSupply, setEditingSupply] = useState<Supply | null>(null)
   const [supplyForm, setSupplyForm] = useState<CreateSupplyDto>({
     name: "",
-    unit: "unidades",
-    cost: 0,
+    unit: "Uni",
   })
 
   // Product form with recipe
@@ -77,7 +80,6 @@ function InventoryContent() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [productForm, setProductForm] = useState<CreateProductDto>({
     name: "",
-    cost: 0,
   })
   const [useRecipe, setUseRecipe] = useState(false)
   const [recipeSupplies, setRecipeSupplies] = useState<Array<{ supplyId: string; qtyPerUnit: number }>>([])
@@ -90,6 +92,9 @@ function InventoryContent() {
     minQty: number
     salePrice: number
     cost?: number
+    hasRecipe?: boolean
+    canLoad?: boolean
+    costMessage?: string
   }>>([])
 
   // Load supplies to event
@@ -101,7 +106,30 @@ function InventoryContent() {
     cost: number
   }>>([])
 
-  // ... (rest of the file until addSupplyToLoad)
+  // Edit inventory product
+  const [showEditProductInventoryDialog, setShowEditProductInventoryDialog] = useState(false)
+  const [editingProductInventory, setEditingProductInventory] = useState<EventProductInventory | null>(null)
+  const [productInventoryForm, setProductInventoryForm] = useState<UpdateProductInventoryDto>({
+    currentQty: 0,
+    minQty: 0,
+    cost: 0,
+    salePrice: 0,
+  })
+
+  // Edit inventory supply
+  const [showEditSupplyInventoryDialog, setShowEditSupplyInventoryDialog] = useState(false)
+  const [editingSupplyInventory, setEditingSupplyInventory] = useState<EventSupplyInventory | null>(null)
+  const [supplyInventoryForm, setSupplyInventoryForm] = useState<UpdateSupplyInventoryDto>({
+    currentQty: 0,
+    minQty: 0,
+    cost: 0,
+  })
+
+  // Delete confirmation
+  const [showDeleteProductInventoryDialog, setShowDeleteProductInventoryDialog] = useState(false)
+  const [deletingProductInventory, setDeletingProductInventory] = useState<EventProductInventory | null>(null)
+  const [showDeleteSupplyInventoryDialog, setShowDeleteSupplyInventoryDialog] = useState(false)
+  const [deletingSupplyInventory, setDeletingSupplyInventory] = useState<EventSupplyInventory | null>(null)
 
 
   // Set event from URL if provided
@@ -148,13 +176,12 @@ function InventoryContent() {
     setSupplyForm({
       name: supply.name,
       unit: supply.unit,
-      cost: supply.cost,
     })
     setShowSupplyDialog(true)
   }
 
   const resetSupplyForm = () => {
-    setSupplyForm({ name: "", unit: "unidades", cost: 0 })
+    setSupplyForm({ name: "", unit: "Uni" })
     setEditingSupply(null)
   }
 
@@ -221,26 +248,42 @@ function InventoryContent() {
     await productMutations.deleteProduct.mutateAsync(id)
   }
 
-  const openEditProduct = (product: Product) => {
+  const openEditProduct = async (product: Product) => {
     setEditingProduct(product)
     setProductForm({
       name: product.name,
-      cost: product.cost,
     })
 
-    if (product.supplies?.length) {
+    // Si el producto tiene receta, obtener los insumos del backend
+    if (product.hasRecipe) {
+      setUseRecipe(true)
+      try {
+        const recipe = await productsService.getSupplies(product.id)
+        setRecipeSupplies(recipe.map(s => ({
+          supplyId: s.supplyId,
+          qtyPerUnit: Number(s.qtyPerUnit) || 1
+        })))
+      } catch (error) {
+        console.error('Error fetching recipe:', error)
+        setRecipeSupplies([])
+      }
+    } else if (product.supplies?.length) {
+      // Fallback: si ya vienen los supplies en el objeto
       setUseRecipe(true)
       setRecipeSupplies(product.supplies.map(s => ({
         supplyId: s.supplyId,
-        qtyPerUnit: s.qtyPerUnit
+        qtyPerUnit: Number(s.qtyPerUnit) || 1
       })))
+    } else {
+      setUseRecipe(false)
+      setRecipeSupplies([])
     }
 
     setShowProductDialog(true)
   }
 
   const resetProductForm = () => {
-    setProductForm({ name: "", cost: 0 })
+    setProductForm({ name: "" })
     setEditingProduct(null)
     setUseRecipe(false)
     setRecipeSupplies([])
@@ -259,7 +302,7 @@ function InventoryContent() {
     if (field === 'supplyId') {
       updated[index].supplyId = value as string
     } else {
-      updated[index].qtyPerUnit = value as number
+      updated[index].qtyPerUnit = parseFloat(String(value)) || 0
     }
     setRecipeSupplies(updated)
   }
@@ -276,9 +319,33 @@ function InventoryContent() {
     setSelectedProductsToLoad(selectedProductsToLoad.filter((_, i) => i !== index))
   }
 
-  const updateProductToLoad = (index: number, field: keyof typeof selectedProductsToLoad[0], value: string | number) => {
+  const updateProductToLoad = async (index: number, field: keyof typeof selectedProductsToLoad[0], value: string | number) => {
     const updated = [...selectedProductsToLoad]
     updated[index] = { ...updated[index], [field]: value }
+
+    // Si se cambió el productId, calcular el costo
+    if (field === 'productId' && value && selectedEventId) {
+      try {
+        const costInfo = await inventoryService.calculateProductCost(selectedEventId, value as string)
+        updated[index] = {
+          ...updated[index],
+          cost: costInfo.calculatedCost,
+          hasRecipe: costInfo.hasRecipe,
+          canLoad: costInfo.canLoad,
+          costMessage: costInfo.message,
+        }
+      } catch (error) {
+        console.error('Error calculating cost:', error)
+        updated[index] = {
+          ...updated[index],
+          cost: 0,
+          hasRecipe: false,
+          canLoad: true,
+          costMessage: 'Error al calcular costo',
+        }
+      }
+    }
+
     setSelectedProductsToLoad(updated)
   }
 
@@ -287,13 +354,31 @@ function InventoryContent() {
 
     try {
       const data: LoadProductsDto = {
-        products: selectedProductsToLoad.filter(p => p.productId && p.initialQty > 0)
+        products: selectedProductsToLoad
+          .filter(p => p.productId && p.initialQty > 0 && p.canLoad !== false)
+          .map(({ productId, initialQty, minQty, salePrice, cost }) => ({
+            productId,
+            initialQty,
+            minQty,
+            salePrice,
+            cost: cost || 0
+          }))
       }
       await inventoryMutations.loadProducts.mutateAsync(data)
       setShowLoadProductsDialog(false)
       setSelectedProductsToLoad([])
+      toast({
+        title: "Productos cargados",
+        description: "Los productos se han cargado exitosamente al inventario.",
+      })
     } catch (error) {
       console.error('Error loading products:', error)
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Error al cargar los productos. Verifique que el evento tenga los insumos necesarios."
+      toast({
+        variant: "destructive",
+        title: "Error al cargar productos",
+        description: errMsg,
+      })
     }
   }
 
@@ -328,6 +413,138 @@ function InventoryContent() {
       setSelectedSuppliesToLoad([])
     } catch (error) {
       console.error('Error loading supplies:', error)
+    }
+  }
+
+  // Inventory Product Edit/Delete handlers
+  const openEditProductInventory = (item: EventProductInventory) => {
+    setEditingProductInventory(item)
+    setProductInventoryForm({
+      currentQty: Number(item.currentQty) || 0,
+      minQty: Number(item.minQty) || 0,
+      cost: Number(item.cost) || 0,
+      salePrice: Number(item.salePrice) || 0,
+    })
+    setShowEditProductInventoryDialog(true)
+  }
+
+  const handleUpdateProductInventory = async () => {
+    if (!editingProductInventory || !selectedEventId) return
+
+    try {
+      // Si tiene receta, no enviar el costo (se calcula automáticamente)
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { cost: _cost, ...formWithoutCost } = productInventoryForm
+      const data = editingProductInventory.hasRecipe ? formWithoutCost : productInventoryForm
+
+      await inventoryMutations.updateProduct.mutateAsync({
+        productId: editingProductInventory.productId,
+        data,
+      })
+      setShowEditProductInventoryDialog(false)
+      setEditingProductInventory(null)
+      toast({
+        title: "Producto actualizado",
+        description: "El producto se ha actualizado correctamente.",
+      })
+    } catch (error) {
+      console.error('Error updating product inventory:', error)
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Error al actualizar el producto."
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: errMsg,
+      })
+    }
+  }
+
+  const openDeleteProductInventory = (item: EventProductInventory) => {
+    setDeletingProductInventory(item)
+    setShowDeleteProductInventoryDialog(true)
+  }
+
+  const handleDeleteProductInventory = async () => {
+    if (!deletingProductInventory || !selectedEventId) return
+
+    try {
+      await inventoryMutations.deleteProduct.mutateAsync(deletingProductInventory.productId)
+      setShowDeleteProductInventoryDialog(false)
+      setDeletingProductInventory(null)
+      toast({
+        title: "Producto eliminado",
+        description: "El producto se ha eliminado del inventario.",
+      })
+    } catch (error) {
+      console.error('Error deleting product inventory:', error)
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Error al eliminar el producto."
+      toast({
+        variant: "destructive",
+        title: "Error al eliminar",
+        description: errMsg,
+      })
+    }
+  }
+
+  // Inventory Supply Edit/Delete handlers
+  const openEditSupplyInventory = (item: EventSupplyInventory) => {
+    setEditingSupplyInventory(item)
+    setSupplyInventoryForm({
+      currentQty: Number(item.currentQty) || 0,
+      minQty: Number(item.minQty) || 0,
+      cost: Number(item.cost) || 0,
+    })
+    setShowEditSupplyInventoryDialog(true)
+  }
+
+  const handleUpdateSupplyInventory = async () => {
+    if (!editingSupplyInventory || !selectedEventId) return
+
+    try {
+      await inventoryMutations.updateSupply.mutateAsync({
+        supplyId: editingSupplyInventory.supplyId,
+        data: supplyInventoryForm,
+      })
+      setShowEditSupplyInventoryDialog(false)
+      setEditingSupplyInventory(null)
+      toast({
+        title: "Insumo actualizado",
+        description: "El insumo se ha actualizado correctamente.",
+      })
+    } catch (error) {
+      console.error('Error updating supply inventory:', error)
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Error al actualizar el insumo."
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar",
+        description: errMsg,
+      })
+    }
+  }
+
+  const openDeleteSupplyInventory = (item: EventSupplyInventory) => {
+    setDeletingSupplyInventory(item)
+    setShowDeleteSupplyInventoryDialog(true)
+  }
+
+  const handleDeleteSupplyInventory = async () => {
+    if (!deletingSupplyInventory || !selectedEventId) return
+
+    try {
+      await inventoryMutations.deleteSupply.mutateAsync(deletingSupplyInventory.supplyId)
+      setShowDeleteSupplyInventoryDialog(false)
+      setDeletingSupplyInventory(null)
+      toast({
+        title: "Insumo eliminado",
+        description: "El insumo se ha eliminado del inventario.",
+      })
+    } catch (error) {
+      console.error('Error deleting supply inventory:', error)
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Error al eliminar el insumo."
+      toast({
+        variant: "destructive",
+        title: "Error al eliminar",
+        description: errMsg,
+      })
     }
   }
 
@@ -514,6 +731,28 @@ function InventoryContent() {
                           {Number(item.profitMargin || 0).toFixed(1)}%
                         </Badge>
                       </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-3 border-t border-white/5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditProductInventory(item)}
+                          className="flex-1 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDeleteProductInventory(item)}
+                          className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 )
@@ -613,6 +852,37 @@ function InventoryContent() {
                         <Badge variant="secondary" className="bg-white/10 text-white hover:bg-white/20 border-0 px-3 py-1">
                           {item.supply.unit}
                         </Badge>
+                      </div>
+
+                      {/* Cost */}
+                      <div className="flex justify-between items-center pt-3 border-t border-white/5">
+                        <div className="flex items-center gap-2 text-white/60 text-sm">
+                          <DollarSign className="h-4 w-4" />
+                          <span>Costo por unidad</span>
+                        </div>
+                        <span className="text-white font-bold">${Number(item.cost || 0).toFixed(2)}</span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-3 border-t border-white/5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openEditSupplyInventory(item)}
+                          className="flex-1 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 border-purple-500/20"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDeleteSupplyInventory(item)}
+                          className="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -748,7 +1018,7 @@ function InventoryContent() {
                 <TableRow className="border-b border-white/10 hover:bg-white/5">
                   <TableHead className="text-white/80">Nombre</TableHead>
                   <TableHead className="text-white/80">Unidad</TableHead>
-                  <TableHead className="text-white/80">Costo</TableHead>
+
                   <TableHead className="text-white/80">Estado</TableHead>
                   <TableHead className="text-right text-white/80">Acciones</TableHead>
                 </TableRow>
@@ -765,7 +1035,6 @@ function InventoryContent() {
                     <TableRow key={supply.id} className="border-b border-white/5 hover:bg-purple-500/10 transition-colors">
                       <TableCell className="font-medium capitalize text-white">{supply.name}</TableCell>
                       <TableCell className="text-white/80">{supply.unit}</TableCell>
-                      <TableCell className="text-white/80">${Number(supply.cost || 0).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge variant={supply.isActive ? "default" : "secondary"}>
                           {supply.isActive ? "Activo" : "Inactivo"}
@@ -842,35 +1111,7 @@ function InventoryContent() {
                   className="mt-1.5 bg-black/30 border-white/10 text-white placeholder:text-white/40 focus:border-purple-500/50"
                 />
               </div>
-              <div>
-                <Label htmlFor="supply-unit" className="text-white/90">Unidad de Medida</Label>
-                <Select
-                  value={supplyForm.unit}
-                  onValueChange={(value) => setSupplyForm({ ...supplyForm, unit: value })}
-                >
-                  <SelectTrigger id="supply-unit" className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black border-white/20">
-                    <SelectItem value="unidades" className="text-white focus:bg-white/10">Unidades</SelectItem>
-                    <SelectItem value="kg" className="text-white focus:bg-white/10">Kilogramos</SelectItem>
-                    <SelectItem value="g" className="text-white focus:bg-white/10">Gramos</SelectItem>
-                    <SelectItem value="l" className="text-white focus:bg-white/10">Litros</SelectItem>
-                    <SelectItem value="ml" className="text-white focus:bg-white/10">Mililitros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="supply-cost" className="text-white/90">Costo por Unidad</Label>
-                <Input
-                  id="supply-cost"
-                  type="number"
-                  step="0.01"
-                  value={supplyForm.cost}
-                  onChange={(e) => setSupplyForm({ ...supplyForm, cost: parseFloat(e.target.value) || 0 })}
-                  className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
-                />
-              </div>
+
             </div>
             <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
               <Button variant="outline" onClick={() => setShowSupplyDialog(false)} className="bg-transparent hover:bg-purple-950 border-white/10">
@@ -903,24 +1144,7 @@ function InventoryContent() {
                   className="mt-1.5 bg-black/30 border-white/10 text-white placeholder:text-white/40 focus:border-blue-500/50"
                 />
               </div>
-              <div>
-                <Label htmlFor="product-cost" className="text-white/90">Costo Base</Label>
-                <Input
-                  id="product-cost"
-                  type="number"
-                  step="0.01"
-                  value={productForm.cost}
-                  onChange={(e) => setProductForm({ ...productForm, cost: parseFloat(e.target.value) || 0 })}
-                  disabled={useRecipe}
-                  className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50 disabled:opacity-50"
-                />
-                {useRecipe && (
-                  <p className="text-xs text-blue-400/70 mt-1.5 flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    El costo se calculará automáticamente desde la receta
-                  </p>
-                )}
-              </div>
+
             </div>
 
             {/* Recipe Section */}
@@ -957,7 +1181,7 @@ function InventoryContent() {
                     <div className="flex flex-col items-center justify-center py-8 bg-white/5 border border-white/10 rounded-lg">
                       <Layers className="h-10 w-10 text-white/20 mb-2" />
                       <p className="text-sm text-white/60">No hay insumos asignados</p>
-                      <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Insumo" para empezar</p>
+                      <p className="text-xs text-white/40 mt-1">Haz clic en &quot;Agregar Insumo&quot; para empezar</p>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1047,23 +1271,29 @@ function InventoryContent() {
               <div className="flex flex-col items-center justify-center py-12 bg-white/5 border border-white/10 rounded-xl">
                 <Package className="h-12 w-12 text-white/20 mb-3" />
                 <p className="text-white/60">No hay productos seleccionados</p>
-                <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Producto" para comenzar</p>
+                <p className="text-xs text-white/40 mt-1">Haz clic en &quot;Agregar Producto&quot; para comenzar</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {selectedProductsToLoad.map((item, index) => {
-                  const product = allProducts.find(p => p.id === item.productId)
-                  const hasRecipe = product?.supplies && product.supplies.length > 0
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  const _product = allProducts.find(p => p.id === item.productId)
                   const profitMargin = item.salePrice && item.cost ? (((item.salePrice - item.cost) / item.salePrice) * 100) : 0
 
                   return (
-                    <div key={index} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-xl p-4 hover:from-white/15 hover:to-white/10 hover:border-blue-500/30 transition-all duration-300 group">
+                    <div key={index} className={cn(
+                      "relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border backdrop-blur-md rounded-xl p-4 transition-all duration-300 group",
+                      item.canLoad === false ? "border-red-500/30 hover:border-red-500/50" : "border-white/10 hover:border-blue-500/30"
+                    )}>
                       {/* Top indicator */}
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className={cn(
+                        "absolute top-0 left-0 w-full h-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                        item.canLoad === false ? "bg-gradient-to-r from-red-500 to-red-600" : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                      )} />
 
                       {/* Recipe Badge */}
-                      {hasRecipe && (
-                        <div className="absolute top-3 right-3">
+                      {item.hasRecipe && (
+                        <div className="absolute top-2 right-3">
                           <Badge variant="outline" className="bg-orange-500/10 text-orange-400 border-orange-500/20 text-xs">
                             Con Receta
                           </Badge>
@@ -1081,11 +1311,18 @@ function InventoryContent() {
                               <SelectValue placeholder="Seleccionar..." />
                             </SelectTrigger>
                             <SelectContent className="bg-black border-white/20">
-                              {allProducts.map((product) => (
-                                <SelectItem key={product.id} value={product.id} className="text-white focus:bg-white/10">
-                                  {product.name}
-                                </SelectItem>
-                              ))}
+                              {allProducts
+                                .filter(product => {
+                                  // Permitir el producto actual de esta fila
+                                  if (product.id === item.productId) return true
+                                  // Excluir productos ya seleccionados en otras filas
+                                  return !selectedProductsToLoad.some(p => p.productId === product.id)
+                                })
+                                .map((product) => (
+                                  <SelectItem key={product.id} value={product.id} className="text-white focus:bg-white/10">
+                                    {product.name}
+                                  </SelectItem>
+                                ))}
                             </SelectContent>
                           </Select>
                         </div>
@@ -1111,16 +1348,19 @@ function InventoryContent() {
                         </div>
                         <div className="col-span-2">
                           <Label className="text-xs text-white/70 mb-1.5 block">
-                            {hasRecipe ? "Costo (Auto)" : "Costo"}
+                            {item.hasRecipe ? "Costo (Auto)" : "Costo"}
                           </Label>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
-                            value={item.cost}
+                            value={item.cost || 0}
                             onChange={(e) => updateProductToLoad(index, 'cost', parseFloat(e.target.value) || 0)}
-                            className="h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
-                            disabled={!!hasRecipe}
+                            className={cn(
+                              "h-9 bg-black/30 border-white/10 text-white focus:border-blue-500/50",
+                              item.hasRecipe && "bg-green-500/10 border-green-500/30"
+                            )}
+                            disabled={!!item.hasRecipe}
                           />
                         </div>
                         <div className="col-span-2">
@@ -1147,7 +1387,7 @@ function InventoryContent() {
                       </div>
 
                       {/* Profit Margin Indicator */}
-                      {item.salePrice > 0 && item.cost > 0 && (
+                      {item.salePrice > 0 && (item.cost || 0) > 0 && (
                         <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between">
                           <span className="text-xs text-white/50">Margen de ganancia</span>
                           <Badge
@@ -1163,11 +1403,27 @@ function InventoryContent() {
                           </Badge>
                         </div>
                       )}
+
+                      {/* Cost Message */}
+                      {item.costMessage && (
+                        <div className={cn(
+                          "mt-3 pt-3 border-t border-white/10 flex items-center gap-2",
+                          item.canLoad === false ? "text-red-400" : "text-green-400"
+                        )}>
+                          {item.canLoad === false ? (
+                            <AlertTriangle className="w-4 h-4" />
+                          ) : (
+                            <TrendingUp className="w-4 h-4" />
+                          )}
+                          <span className="text-xs">{item.costMessage}</span>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
               </div>
-            )}
+            )
+            }
 
             <div className="flex justify-end pt-4 gap-2">
               <Button className="bg-transparent hover:bg-blue-950" onClick={() => setShowLoadProductsDialog(false)}>
@@ -1175,9 +1431,9 @@ function InventoryContent() {
               </Button>
               <Button className="bg-blue-950 hover:bg-blue-900"
                 onClick={handleLoadProducts}
-                disabled={selectedProductsToLoad.length === 0}
+                disabled={selectedProductsToLoad.length === 0 || selectedProductsToLoad.some(p => p.canLoad === false)}
               >
-                Cargar {selectedProductsToLoad.length} Producto(s)
+                Cargar {selectedProductsToLoad.filter(p => p.canLoad !== false).length} Producto(s)
               </Button>
             </div>
           </div>
@@ -1210,12 +1466,13 @@ function InventoryContent() {
               <div className="flex flex-col items-center justify-center py-12 bg-white/5 border border-white/10 rounded-xl">
                 <Layers className="h-12 w-12 text-white/20 mb-3" />
                 <p className="text-white/60">No hay insumos seleccionados</p>
-                <p className="text-xs text-white/40 mt-1">Haz clic en "Agregar Insumo" para comenzar</p>
+                <p className="text-xs text-white/40 mt-1">Haz clic en &quot;Agregar Insumo&quot; para comenzar</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {selectedSuppliesToLoad.map((item, index) => {
-                  const supply = allSupplies.find(s => s.id === item.supplyId)
+                  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                  const _supply = allSupplies.find(s => s.id === item.supplyId)
 
                   return (
                     <div key={index} className="relative overflow-hidden bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-xl p-4 hover:from-white/15 hover:to-white/10 hover:border-purple-500/30 transition-all duration-300 group">
@@ -1303,6 +1560,157 @@ function InventoryContent() {
           </div>
         </DialogContent>
       </Dialog>
-    </main>
+
+      {/* Edit Product Inventory Dialog */}
+      <Dialog open={showEditProductInventoryDialog} onOpenChange={setShowEditProductInventoryDialog}>
+        <DialogContent className="bg-gradient-to-br from-gray-950 to-black border-white/10">
+          <DialogHeader className="border-b border-white/10 pb-4">
+            <DialogTitle className="text-xl text-white">Editar Producto en Inventario</DialogTitle>
+            <p className="text-xs text-white/50 mt-1">
+              {editingProductInventory?.product.name}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-lg p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white/90">Stock Actual</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={productInventoryForm.currentQty}
+                    onChange={(e) => setProductInventoryForm({ ...productInventoryForm, currentQty: parseInt(e.target.value) || 0 })}
+                    className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                  />
+                </div>
+                <div>
+                  <Label className="text-white/90">Stock Mínimo</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={productInventoryForm.minQty}
+                    onChange={(e) => setProductInventoryForm({ ...productInventoryForm, minQty: parseInt(e.target.value) || 0 })}
+                    className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white/90">
+                    {editingProductInventory?.hasRecipe ? "Costo (Auto)" : "Costo"}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={productInventoryForm.cost}
+                    onChange={(e) => setProductInventoryForm({ ...productInventoryForm, cost: parseFloat(e.target.value) || 0 })}
+                    className={cn(
+                      "mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50",
+                      editingProductInventory?.hasRecipe && "bg-green-500/10 border-green-500/30"
+                    )}
+                    disabled={!!editingProductInventory?.hasRecipe}
+                  />
+                </div>
+                <div>
+                  <Label className="text-white/90">Precio de Venta</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={productInventoryForm.salePrice}
+                    onChange={(e) => setProductInventoryForm({ ...productInventoryForm, salePrice: parseFloat(e.target.value) || 0 })}
+                    className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-blue-500/50"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+              <Button variant="outline" onClick={() => setShowEditProductInventoryDialog(false)} className="bg-transparent hover:bg-blue-950 border-white/10">
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateProductInventory} className="bg-blue-950 hover:bg-blue-900">
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Supply Inventory Dialog */}
+      <Dialog open={showEditSupplyInventoryDialog} onOpenChange={setShowEditSupplyInventoryDialog}>
+        <DialogContent className="bg-gradient-to-br from-gray-950 to-black border-white/10">
+          <DialogHeader className="border-b border-white/10 pb-4">
+            <DialogTitle className="text-xl text-white">Editar Insumo en Inventario</DialogTitle>
+            <p className="text-xs text-white/50 mt-1">
+              {editingSupplyInventory?.supply.name}
+            </p>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-gradient-to-br from-white/10 to-white/5 border border-white/10 backdrop-blur-md rounded-lg p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-white/90">Stock Actual</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={supplyInventoryForm.currentQty}
+                    onChange={(e) => setSupplyInventoryForm({ ...supplyInventoryForm, currentQty: parseInt(e.target.value) || 0 })}
+                    className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                  />
+                </div>
+                <div>
+                  <Label className="text-white/90">Stock Mínimo</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={supplyInventoryForm.minQty}
+                    onChange={(e) => setSupplyInventoryForm({ ...supplyInventoryForm, minQty: parseInt(e.target.value) || 0 })}
+                    className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-white/90">Costo por Unidad</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={supplyInventoryForm.cost}
+                  onChange={(e) => setSupplyInventoryForm({ ...supplyInventoryForm, cost: parseFloat(e.target.value) || 0 })}
+                  className="mt-1.5 bg-black/30 border-white/10 text-white focus:border-purple-500/50"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end pt-4 border-t border-white/10">
+              <Button variant="outline" onClick={() => setShowEditSupplyInventoryDialog(false)} className="bg-transparent hover:bg-purple-950 border-white/10">
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateSupplyInventory} className="bg-purple-950 hover:bg-purple-900">
+                Guardar Cambios
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Product Inventory Confirmation */}
+      <DeleteConfirmDialog
+        open={showDeleteProductInventoryDialog}
+        onOpenChange={setShowDeleteProductInventoryDialog}
+        onConfirm={handleDeleteProductInventory}
+        title="Eliminar Producto del Inventario"
+        description={`¿Estás seguro de que deseas eliminar "${deletingProductInventory?.product.name}" del inventario de este evento?`}
+      />
+
+      {/* Delete Supply Inventory Confirmation */}
+      <DeleteConfirmDialog
+        open={showDeleteSupplyInventoryDialog}
+        onOpenChange={setShowDeleteSupplyInventoryDialog}
+        onConfirm={handleDeleteSupplyInventory}
+        title="Eliminar Insumo del Inventario"
+        description={`¿Estás seguro de que deseas eliminar "${deletingSupplyInventory?.supply.name}" del inventario de este evento?`}
+      />
+    </main >
   )
 }
