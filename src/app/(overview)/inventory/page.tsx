@@ -913,7 +913,6 @@ function InventoryContent() {
               <TableHeader>
                 <TableRow className="border-b border-white/10 hover:bg-white/5">
                   <TableHead className="text-white/80">Nombre</TableHead>
-                  <TableHead className="text-white/80">Costo</TableHead>
                   <TableHead className="text-white/80">Receta</TableHead>
                   <TableHead className="text-white/80">Estado</TableHead>
                   <TableHead className="text-right text-white/80">Acciones</TableHead>
@@ -930,12 +929,9 @@ function InventoryContent() {
                   products.map((product) => (
                     <TableRow key={product.id} className="border-b border-white/5 hover:bg-blue-500/10 transition-colors">
                       <TableCell className="font-medium capitalize text-white">{product.name}</TableCell>
-                      <TableCell className="text-white/80">${Number(product.cost || 0).toFixed(2)}</TableCell>
                       <TableCell>
-                        {product.supplies?.length ? (
-                          <Badge variant="outline" className="bg-orange-500/10 text-orange-500">
-                            Sí ({product.supplies.length})
-                          </Badge>
+                        {product.hasRecipe ? (
+                          <span className="text-muted-foreground text-sm">Sí</span>
                         ) : (
                           <span className="text-muted-foreground text-sm">No</span>
                         )}
